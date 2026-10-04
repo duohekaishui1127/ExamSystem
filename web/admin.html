@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>局域网考试系统 · 管理员</title>
+<style>
+:root{--bg:#f5f7fb;--card:#fff;--line:#e4e8f0;--text:#202536;--muted:#778096;--p:#5368df;--p2:#eef1ff;--ok:#239b64;--okbg:#eaf8f1;--bad:#d84f5d;--badbg:#fff0f2;--warn:#c98426;--shadow:0 8px 28px rgba(35,45,80,.06)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Microsoft YaHei",system-ui,sans-serif;color:var(--text)}button,input,textarea,select{font:inherit}.hidden{display:none!important}
+.shell{max-width:1260px;margin:auto;padding:24px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-bottom:18px}h1,h2,h3{margin:0}.muted{color:var(--muted)}
+.top,.toolbar,.qhead{display:flex;align-items:center;gap:10px}.top,.qhead{justify-content:space-between}.btn{border:0;border-radius:10px;padding:10px 15px;cursor:pointer;background:#edf0f5;color:#303746}.btn:hover{filter:brightness(.985)}.btn.primary{background:var(--p);color:#fff}.btn.ok{background:var(--ok);color:#fff}.btn.danger{background:var(--bad);color:#fff}.btn.small{padding:6px 10px;font-size:13px}.btn:disabled{opacity:.55;cursor:not-allowed}
+.tabs{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}.tab{border:0;border-radius:10px;padding:10px 16px;background:#e9edf4;cursor:pointer}.tab.active{background:var(--p);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid #cbd3df;border-radius:10px;background:#fff;color:var(--text)}textarea{min-height:105px;resize:vertical}input:disabled,textarea:disabled,select:disabled{background:#f4f5f8;color:#777}
+.notice{padding:11px 13px;border-radius:10px;margin-top:12px;background:#eef2ff;color:#4052b5}.notice.ok{background:var(--okbg);color:#167345}.notice.bad{background:var(--badbg);color:#ad3946}.status{display:inline-flex;align-items:center;padding:6px 11px;border-radius:99px;font-size:13px;font-weight:700}.status.draft{background:#f0f2f6;color:#666}.status.running{background:var(--okbg);color:#167345}.status.ended{background:#eef1ff;color:#4656bd}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}.kpi{padding:15px;background:#fafbfc;border:1px solid #f0f1f4;border-radius:12px}.kpi b{font-size:25px;display:block;margin-top:3px}.ok-text{color:var(--ok);font-weight:700}.warn-text{color:var(--warn);font-weight:700}.bad-text{color:var(--bad);font-weight:700}
+.q{border:1px solid var(--line);border-radius:13px;padding:15px;margin-top:12px}.badge{display:inline-block;font-size:12px;padding:3px 8px;border-radius:99px;background:#eef1ff;color:#4657c6}.badge.good{background:var(--okbg);color:#147046}.badge.bad{background:var(--badbg);color:#b43c49}.qtext{font-size:16px;line-height:1.85;margin-top:9px;white-space:pre-wrap}.error-mark{background:#ffd7dc;color:#a62d3a;border-radius:4px;padding:2px 3px;font-weight:700}.answer-note{margin-top:7px;font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:top}th{background:#fafbfc;white-space:nowrap}.rank{font-weight:800;color:#4356c7}.rate{font-weight:700}.analysis-low{color:var(--bad)}
+.login{max-width:430px;margin:11vh auto}.modal{position:fixed;inset:0;background:rgba(21,27,45,.48);display:flex;align-items:center;justify-content:center;padding:18px;z-index:50}.modalbox{width:min(940px,96vw);max-height:92vh;overflow:auto;background:#fff;border-radius:17px;padding:22px}.filterbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.filterbar input{width:auto;min-width:220px}.history-row{display:block;padding:14px 12px;border-bottom:1px solid var(--line);border-radius:10px;cursor:pointer;transition:background .15s ease}.history-row:hover{background:#f8f9ff}.history-main{display:flex;justify-content:space-between;gap:15px;align-items:flex-start}.history-meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin-top:5px}.history-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.history-actions .btn{display:inline-flex!important;visibility:visible!important;opacity:1!important}
+.section-title{font-size:14px;font-weight:700;margin:17px 0 8px}.choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.choice{border:1px solid #d6dce8;border-radius:12px;padding:14px;cursor:pointer;background:#fff}.choice:hover{border-color:#9aa8e9}.choice.active{border-color:var(--p);background:var(--p2);box-shadow:0 0 0 1px var(--p) inset}.choice.good.active{border-color:var(--ok);background:var(--okbg);box-shadow:0 0 0 1px var(--ok) inset}.choice.bad.active{border-color:var(--bad);background:var(--badbg);box-shadow:0 0 0 1px var(--bad) inset}.choice b{display:block;margin-bottom:4px}.choice small{color:var(--muted)}
+.preview{margin-top:10px;padding:14px;background:#fff9fa;border:1px dashed #eda6ad;border-radius:11px;line-height:1.9;white-space:pre-wrap}.error-selection{background:#ffccd3;color:#9e2634;border-radius:4px;padding:2px 3px;font-weight:700}.stepbox{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe}.stepnum{display:inline-flex;width:24px;height:24px;border-radius:50%;align-items:center;justify-content:center;background:var(--p);color:#fff;font-size:12px;font-weight:700;margin-right:7px}
+.mode-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.mode-card{border:1px solid #d8deea;border-radius:12px;padding:13px;cursor:pointer}.mode-card.active{border-color:var(--p);background:var(--p2)}.mode-card input{width:auto;margin-right:7px}.subcard{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px;background:#fcfcfd}
+@media(max-width:820px){.grid,.kpis,.choice-grid,.mode-options{grid-template-columns:1fr}.shell{padding:12px}.qhead{align-items:flex-start;flex-direction:column}.history-main{display:block}.filterbar input{width:100%}}
+.import-help{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f8fafc;border:1px dashed #cbd5e1;color:var(--muted);font-size:13px;line-height:1.7}.import-help b{color:var(--text)}
+
+.review-section{margin-top:20px;border-top:1px solid var(--line);padding-top:18px}
+.review-topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}
+.review-tabs{display:flex;gap:8px;background:#f1f3f7;padding:4px;border-radius:11px}
+.review-tab{border:0;background:transparent;border-radius:8px;padding:8px 13px;cursor:pointer;color:#535c70;font-weight:700}
+.review-tab.active{background:#fff;color:#4053c5;box-shadow:0 1px 5px rgba(35,45,80,.08)}
+.review-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.review-tools input[type="text"]{width:220px}
+.review-tools label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);white-space:nowrap}
+.review-tools input[type="checkbox"]{width:auto}
+.review-layout{display:grid;grid-template-columns:minmax(220px,290px) minmax(0,1fr);gap:14px;margin-top:14px}
+.review-list{border:1px solid var(--line);border-radius:13px;overflow:auto;max-height:620px;background:#fbfcfe}
+.review-item{padding:12px;border-bottom:1px solid var(--line);cursor:pointer}
+.review-item:last-child{border-bottom:0}
+.review-item:hover{background:#f4f6ff}
+.review-item.active{background:#edf1ff;box-shadow:inset 3px 0 0 var(--p)}
+.review-item-title{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.review-item-meta{margin-top:5px;color:var(--muted);font-size:12px;line-height:1.6}
+.review-panel{border:1px solid var(--line);border-radius:13px;padding:16px;min-width:0}
+.review-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.review-answer-row{padding:13px 0;border-bottom:1px solid var(--line)}
+.review-answer-row:last-child{border-bottom:0}
+.review-answer-main{display:grid;grid-template-columns:minmax(90px,140px) minmax(0,1fr);gap:12px}
+.review-result{font-weight:700;white-space:nowrap}
+.review-standard{margin-top:8px;padding:9px 11px;background:#f8f9fc;border-radius:9px;font-size:13px;line-height:1.7}
+.review-answer-text{white-space:pre-wrap;word-break:break-word;line-height:1.75}
+.review-nav{display:flex;gap:8px;align-items:center}
+.review-empty{padding:24px;text-align:center;color:var(--muted)}
+@media(max-width:820px){.review-layout{grid-template-columns:1fr}.review-list{max-height:280px}.review-answer-main{grid-template-columns:1fr}.review-tools input[type="text"]{width:100%}}
+</style>
+</head>
+<body>
+<div id="loginView" class="card login">
+  <h2>管理员登录</h2><p class="muted">首次使用：admin / admin123</p>
+  <div class="field"><label>用户名</label><input id="loginUser" value="admin"></div>
+  <div class="field" style="margin-top:10px"><label>密码</label><input id="loginPass" type="password"></div>
+  <button class="btn primary" style="width:100%;margin-top:14px" onclick="login()">登录</button>
+  <div id="loginMsg" class="notice bad hidden"></div>
+</div>
+
+<div id="appView" class="shell hidden">
+  <div class="top"><div><h1>局域网考试系统</h1><div class="muted">出题 → 开始考试 → 查看结果 → 自动归档</div></div><button class="btn" onclick="logout()">退出管理员</button></div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('exam',this)">当前考试</button>
+    <button class="tab" onclick="showTab('questions',this)">题目</button>
+    <button class="tab" onclick="showTab('participants',this)">考试结果</button>
+    <button class="tab" onclick="showTab('history',this)">历史考试</button>
+  </div>
+
+  <section id="tab-exam">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between"><div><h2>当前考试</h2><div id="examId" class="muted"></div></div><span id="examStatus" class="status draft">未开始</span></div>
+      <div class="grid" style="margin-top:16px">
+        <div class="field"><label>考试名称</label><input id="examName"></div>
+        <div class="field"><label>考试口令</label><input id="examCode"></div>
+        <div class="field"><label>考试时长（分钟）</label><input id="examDuration" type="number" min="1"></div>
+        <div class="field"><label>修改管理员密码（留空则不修改）</label><input id="newAdminPass" type="password"></div>
+      </div>
+      <div class="section-title">结果统计方式</div>
+      <div class="mode-options">
+        <label id="modeAccuracyCard" class="mode-card"><input type="radio" name="scoreMode" value="accuracy" onchange="setScoreMode('accuracy')"><b>只统计正确率（推荐）</b><div class="muted">只看正确数、错误数、正确率和排名；成员端不显示成绩、及格线、通过/未通过。</div></label>
+        <label id="modeScoreCard" class="mode-card"><input type="radio" name="scoreMode" value="score" onchange="setScoreMode('score')"><b>启用百分制</b><div class="muted">正确率同时作为百分制成绩，并按及格线判断通过。</div></label>
+      </div>
+      <div id="passScoreBox" class="field hidden" style="max-width:260px;margin-top:12px"><label>及格分数</label><input id="examPass" type="number" min="0" max="100"></div>
+      <div class="toolbar" style="margin-top:14px"><label><input id="examRandom" type="checkbox" style="width:auto"> 每位成员题目顺序随机</label><button id="saveExamBtn" class="btn primary" onclick="saveExam()">保存设置</button></div>
+      <div id="examTimes" class="notice hidden"></div><div id="examSummary" class="kpis hidden"></div>
+      <div class="toolbar" style="margin-top:18px"><button id="startExamBtn" class="btn ok hidden" onclick="startExam()">开始考试</button><button id="endExamBtn" class="btn danger hidden" onclick="endExam()">结束考试</button><button id="newExamBtn" class="btn primary hidden" onclick="newExam()">创建下一场考试</button></div>
+      <div id="examHelp" class="notice"></div>
+    </div>
+  </section>
+
+  <section id="tab-questions" class="hidden">
+    <div class="card">
+      <div class="toolbar" style="justify-content:space-between"><div><h2>题目</h2><div id="questionHint" class="muted">当前考试里的题目都会自动进入本场考试，无需额外勾选。</div></div><div class="toolbar"><button id="templateBtn" class="btn" onclick="downloadImportTemplate()">下载导入模板</button><button id="importQuestionBtn" class="btn" onclick="questionImportFile.click()">批量导入 Excel/CSV</button><button id="addQuestionBtn" class="btn primary" onclick="newQuestion()">＋ 新增题目</button><input id="questionImportFile" class="hidden" type="file" accept=".xlsx,.csv" onchange="importQuestionFile(this)"></div></div>
+      <div class="import-help"><b>批量导入格式：</b>题型、题目正文、判断结果、错误部分、标准答案。判断题填写“正确/错误”；错误题填写题目中需要点击的错误原文；主观题填写标准答案。</div>
+      <div id="questionList"></div>
+    </div>
+  </section>
+
+  <section id="tab-participants" class="hidden">
+    <div class="card">
+      <div><h2>考试结果</h2><div class="muted">排行榜按正确率从高到低；正确率相同时，用时更短者靠前。进行中的成员暂不参与排名。</div></div>
+      <div id="kpis" class="kpis"></div>
+      <div class="section-title">成员排名与作答情况</div>
+      <div style="overflow:auto"><table><thead id="participantHead"></thead><tbody id="participantBody"></tbody></table></div>
+      <div class="section-title" style="margin-top:24px">题目正确率分析</div>
+      <div class="muted">考试进行中时，未作答且仍在考试的成员暂不计入该题正确率；已交卷未答按错误计算。</div>
+      <div style="overflow:auto;margin-top:8px"><table><thead><tr><th>题号</th><th>题目</th><th>正确</th><th>错误</th><th>未作答</th><th>正确率</th></tr></thead><tbody id="questionStatsBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="tab-history" class="hidden">
+    <div class="card"><h2>历史考试</h2><div class="filterbar"><input id="historyName" placeholder="按考试名称筛选" oninput="renderHistory()"><input id="historyDate" type="date" onchange="renderHistory()"><button class="btn" onclick="clearHistoryFilter()">清除筛选</button></div><div id="historyList" style="margin-top:14px"></div></div>
+  </section>
+</div>
+
+<div id="questionModal" class="modal hidden"><div class="modalbox">
+  <div class="toolbar" style="justify-content:space-between"><h2 id="qTitle">新增题目</h2><button class="btn" onclick="closeQuestion()">关闭</button></div><input id="qId" type="hidden">
+  <div class="field" style="margin-top:14px;max-width:320px"><label>题型</label><select id="qType" onchange="switchQType()"><option value="correction">判断纠错题</option><option value="subjective">主观题</option></select></div>
+  <div class="stepbox"><div><span class="stepnum">1</span><b>填写题目</b></div><textarea id="qText" style="margin-top:10px" placeholder="请输入题目正文" oninput="questionTextChanged()"></textarea></div>
+  <div id="correctionBox" class="stepbox"><div><span class="stepnum">2</span><b>设置答案</b></div><div class="choice-grid" style="margin-top:10px"><div id="truthCorrect" class="choice good" onclick="setJudgement('correct')"><b>✓ 本题正确</b><small>题目内容没有错误，选择后无需再设置。</small></div><div id="truthWrong" class="choice bad" onclick="setJudgement('wrong')"><b>✕ 本题有错误</b><small>选择后，再把题目中具体错误的位置标出来。</small></div></div>
+    <div id="wrongStep" class="hidden" style="margin-top:12px"><div class="notice">先在上面的“题目正文”输入框中用鼠标拖选错误文字，再点击“确认错误位置”。</div><div class="toolbar" style="margin-top:10px"><button class="btn" onclick="captureSelection()">确认错误位置</button><button class="btn hidden" id="reselectBtn" onclick="focusForReselect()">重新选择</button><span id="rangeText" class="muted"></span></div><div class="preview" id="previewBox">设置后，这里会高亮显示错误部分。</div></div>
+  </div>
+  <div id="subjectiveBox" class="stepbox hidden"><div><span class="stepnum">2</span><b>设置标准答案</b></div><div class="field" style="margin-top:10px"><textarea id="qAnswer" placeholder="请输入标准答案"></textarea></div><div class="notice">判题时自动忽略标点、空格、换行和英文大小写；剩余正文必须完全一致。</div></div>
+  <div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" onclick="saveQuestion()">保存题目</button></div>
+</div></div>
+
+<div id="detailModal" class="modal hidden"><div class="modalbox"><div class="toolbar" style="justify-content:space-between"><h2 id="detailTitle">详情</h2><button class="btn" onclick="detailModal.classList.add('hidden')">关闭</button></div><div id="detailContent" style="margin-top:14px"></div></div></div>
+
+<script>
+let token=sessionStorage.getItem('adminToken')||'',exam=null,summary=null,questions=[],historyItems=[],questionStats=[],errorStart=null,errorEnd=null,judgement='correct',poll=null,scoreMode='accuracy';
+const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const fmt=n=>{n=Math.max(0,+n||0);let h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=Math.floor(n%60);return(h?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')};
+const rate=v=>(Number(v||0)).toFixed(1)+'%';
+const arr=v=>Array.isArray(v)?v:(v==null?[]:[v]);
+async function api(url,opt={}){opt.headers=Object.assign({'Content-Type':'application/json'},token?{'X-Admin-Token':token}:{},opt.headers||{});let r=await fetch(url,opt),j={};try{j=await r.json()}catch{}if(!r.ok){let m=j.message||'请求失败';if(j.detail)m+='\n详细信息：'+j.detail;throw Error(m)}return j}
+async function login(){try{let r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:loginUser.value,password:loginPass.value})}),j=await r.json();if(!r.ok)throw Error(j.message);token=j.token;sessionStorage.setItem('adminToken',token);enter()}catch(e){loginMsg.textContent=e.message;loginMsg.classList.remove('hidden')}}
+function logout(){sessionStorage.removeItem('adminToken');location.reload()}
+async function enter(){loginView.classList.add('hidden');appView.classList.remove('hidden');try{await Promise.all([loadExam(),loadQuestions(),loadParticipants(),loadHistory()]);clearInterval(poll);poll=setInterval(()=>{if(exam?.status==='running'&&!$('tab-participants').classList.contains('hidden'))loadParticipants()},3000)}catch(e){console.error(e);logout()}}
+function showTab(name,btn){document.querySelectorAll('[id^="tab-"]').forEach(x=>x.classList.add('hidden'));$('tab-'+name).classList.remove('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));btn.classList.add('active');if(name==='participants')loadParticipants();if(name==='history')loadHistory()}
+function statusLabel(s){return s==='draft'?'未开始':s==='running'?'进行中':'已结束'}
+function setScoreMode(mode){scoreMode=mode==='score'?'score':'accuracy';document.querySelectorAll('input[name="scoreMode"]').forEach(x=>x.checked=x.value===scoreMode);modeAccuracyCard.classList.toggle('active',scoreMode==='accuracy');modeScoreCard.classList.toggle('active',scoreMode==='score');passScoreBox.classList.toggle('hidden',scoreMode!=='score')}
+async function loadExam(){let j=await api('/api/admin/exam');exam=j.exam;summary=j.summary;renderExam()}
+function renderExam(){examId.textContent='考试 ID：'+exam.id;examName.value=exam.name;examCode.value=exam.accessCode;examDuration.value=exam.durationMinutes;examPass.value=exam.passScore??80;examRandom.checked=!!exam.randomizeQuestions;setScoreMode(exam.scoringMode||'score');let draft=exam.status==='draft',running=exam.status==='running',ended=exam.status==='ended';examStatus.textContent=statusLabel(exam.status);examStatus.className='status '+exam.status;[examName,examCode,examDuration,newAdminPass,examRandom].forEach(x=>x.disabled=!draft);document.querySelectorAll('input[name="scoreMode"]').forEach(x=>x.disabled=!draft);examPass.disabled=!draft;saveExamBtn.classList.toggle('hidden',!draft);startExamBtn.classList.toggle('hidden',!draft);endExamBtn.classList.toggle('hidden',!running);newExamBtn.classList.toggle('hidden',!ended);examTimes.classList.toggle('hidden',draft);if(!draft)examTimes.textContent=`开始：${exam.startedAt||'-'}${ended?'　结束：'+(exam.endedAt||'-'):''}`;examSummary.classList.toggle('hidden',draft);if(!draft){let avg=summary?.averageAccuracy??0,items=[['参加人数',summary?.participantCount??0],['题目数量',summary?.questionCount??0],['平均正确率',rate(avg)]];if((exam.scoringMode||'score')==='score')items.push(['通过人数',summary?.passedCount??0]);else items.push(['统计方式','正确率']);examSummary.innerHTML=items.map(x=>`<div class="kpi"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('')}examHelp.textContent=draft?'先设置考试信息并添加题目，确认无误后点击“开始考试”。开始后本场题目会被冻结。':running?'考试进行中。点击“结束考试”会让仍在作答的成员立即交卷，并自动归档本场结果。':'本场考试已归档，可以在“历史考试”中长期查看或导出 Excel。';addQuestionBtn.disabled=!draft;importQuestionBtn.disabled=!draft;templateBtn.disabled=!draft;questionHint.textContent=draft?'当前考试里的所有题目都会自动进入本场考试，无需额外勾选。':'考试已开始，题目已冻结，当前不可修改。'}
+function currentExamSettingsPayload(){return {name:examName.value,accessCode:examCode.value,durationMinutes:+examDuration.value,scoringMode:scoreMode,passScore:scoreMode==='score'?(+examPass.value||80):80,randomizeQuestions:examRandom.checked,adminPassword:newAdminPass.value}}
+async function saveExam(){try{await api('/api/admin/exam',{method:'PUT',body:JSON.stringify(currentExamSettingsPayload())});newAdminPass.value='';await loadExam();alert('考试设置已保存')}catch(e){alert(e.message)}}
+async function startExam(){if(!questions.length){alert('请先添加至少一道题目');return}if(!confirm(`确认开始“${examName.value}”吗？\n\n系统会先自动保存当前考试设置，然后冻结 ${questions.length} 道题。`))return;try{await api('/api/admin/exam',{method:'PUT',body:JSON.stringify(currentExamSettingsPayload())});newAdminPass.value='';await api('/api/admin/exam/start',{method:'POST',body:'{}'});await Promise.all([loadExam(),loadQuestions(),loadParticipants()])}catch(e){alert(e.message)}}
+async function endExam(){if(!confirm('确定结束本场考试吗？\n\n仍在答题中的成员会立即自动交卷，本场结果随后自动进入历史记录。'))return;try{await api('/api/admin/exam/end',{method:'POST',body:'{}'});await Promise.all([loadExam(),loadParticipants(),loadHistory()])}catch(e){alert(e.message)}}
+async function newExam(){if(!confirm('创建下一场考试？上一场考试的结果会继续保留在历史记录中。'))return;try{await api('/api/admin/exam/new',{method:'POST',body:'{}'});await Promise.all([loadExam(),loadQuestions(),loadParticipants()])}catch(e){alert(e.message)}}
+
+async function loadQuestions(){let j=await api('/api/admin/questions');questions=j.questions||[];renderQuestions()}
+function markedQuestion(q){if(q.type!=='correction'||q.noError||q.errorStart==null)return esc(q.text);return esc(q.text.slice(0,q.errorStart))+`<span class="error-mark">${esc(q.text.slice(q.errorStart,q.errorEnd))}</span>`+esc(q.text.slice(q.errorEnd))}
+function renderQuestions(){questionList.innerHTML=questions.length?'':'<div class="notice">暂无题目，点击右上角“＋ 新增题目”开始出题。</div>';questions.forEach((q,i)=>{let d=document.createElement('div');d.className='q';let badge=q.type==='subjective'?'<span class="badge">主观题</span>':q.noError?'<span class="badge good">判断题 · 正确</span>':'<span class="badge bad">判断题 · 有错误</span>';let answer=q.type==='subjective'?`标准答案：${esc(q.answerText||'')}`:(q.noError?'答案：本题正确':`错误部分：${esc(q.text.slice(q.errorStart,q.errorEnd))}`);d.innerHTML=`<div class="qhead"><div><b>第 ${i+1} 题</b> ${badge}</div><div class="toolbar"><button class="btn small" onclick="moveQuestion(${q.id},'up')">↑</button><button class="btn small" onclick="moveQuestion(${q.id},'down')">↓</button><button class="btn small" onclick="editQuestion(${q.id})">编辑</button><button class="btn small danger" onclick="deleteQuestion(${q.id})">删除</button></div></div><div class="qtext">${markedQuestion(q)}</div><div class="answer-note">${answer}</div>`;questionList.appendChild(d)})}
+
+async function downloadImportTemplate(){
+  try{
+    let r=await fetch('/api/admin/questions/import-template.xlsx',{headers:token?{'X-Admin-Token':token}:{}});
+    if(!r.ok){let j={};try{j=await r.json()}catch{}throw Error(j.message||'模板下载失败')}
+    let blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='question_import_template.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
+  }catch(e){alert(e.message)}
+}
+function arrayBufferToBase64(buffer){
+  let bytes=new Uint8Array(buffer),parts=[],size=0x8000;
+  for(let i=0;i<bytes.length;i+=size)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+size,bytes.length))));
+  return btoa(parts.join(''))
+}
+async function importQuestionFile(input){
+  let file=input.files&&input.files[0];input.value='';if(!file)return;
+  if(exam?.status!=='draft'){alert('只有未开始的考试可以导入题目');return}
+  let ext=(file.name.split('.').pop()||'').toLowerCase();
+  if(!['xlsx','csv'].includes(ext)){alert('仅支持 .xlsx 或 .csv 文件');return}
+  if(file.size>10*1024*1024){alert('导入文件请不要超过 10MB');return}
+  try{
+    let j=await api('/api/admin/questions/import',{method:'POST',body:JSON.stringify({fileName:file.name,dataBase64:arrayBufferToBase64(await file.arrayBuffer())})});
+    let msg=`成功导入 ${j.importedCount} 道题。`;
+    if((j.errors||[]).length){msg+=`\n\n以下行未导入：\n`+j.errors.slice(0,20).join('\n');if(j.errors.length>20)msg+=`\n……另有 ${j.errors.length-20} 条`}
+    alert(msg);await loadQuestions()
+  }catch(e){alert(e.message)}
+}
+function newQuestion(){if(exam.status!=='draft')return;qId.value='';qTitle.textContent='新增题目';qType.value='correction';qText.value='';qAnswer.value='';errorStart=errorEnd=null;judgement='correct';switchQType();setJudgement('correct');updatePreview();questionModal.classList.remove('hidden')}
+function editQuestion(id){if(exam.status!=='draft')return;let q=questions.find(x=>+x.id===+id);if(!q)return;qId.value=q.id;qTitle.textContent='编辑题目';qType.value=q.type;qText.value=q.text;qAnswer.value=q.answerText||'';errorStart=q.errorStart;errorEnd=q.errorEnd;judgement=q.noError?'correct':'wrong';switchQType();if(q.type==='correction')setJudgement(judgement,false);updatePreview();questionModal.classList.remove('hidden')}
+function closeQuestion(){questionModal.classList.add('hidden')}
+function switchQType(){let subjective=qType.value==='subjective';correctionBox.classList.toggle('hidden',subjective);subjectiveBox.classList.toggle('hidden',!subjective);if(!subjective)setJudgement(judgement||'correct',false)}
+function setJudgement(v,clear=true){judgement=v==='wrong'?'wrong':'correct';truthCorrect.classList.toggle('active',judgement==='correct');truthWrong.classList.toggle('active',judgement==='wrong');wrongStep.classList.toggle('hidden',judgement!=='wrong');if(clear&&judgement==='correct'){errorStart=errorEnd=null;rangeText.textContent='';reselectBtn.classList.add('hidden')}updatePreview()}
+function questionTextChanged(){if(errorStart!=null||errorEnd!=null){errorStart=errorEnd=null;rangeText.textContent='题目已修改，请重新选择错误位置';reselectBtn.classList.add('hidden')}updatePreview()}
+function captureSelection(){let s=qText.selectionStart,e=qText.selectionEnd;if(s===e){alert('请先在题目正文输入框里拖选错误文字');qText.focus();return}errorStart=s;errorEnd=e;rangeText.textContent='已标记：“'+qText.value.slice(s,e)+'”';reselectBtn.classList.remove('hidden');updatePreview()}
+function focusForReselect(){qText.focus();qText.setSelectionRange(0,0);rangeText.textContent='请重新拖选错误文字'}
+function updatePreview(){let t=qText.value||'';if(judgement!=='wrong'){previewBox.innerHTML='本题设置为正确，无需标记错误位置。';return}if(errorStart==null||errorEnd==null||errorEnd>t.length){previewBox.innerHTML=t?esc(t)+'<div class="muted" style="margin-top:6px">尚未设置错误位置</div>':'设置后，这里会高亮显示错误部分。';return}previewBox.innerHTML=esc(t.slice(0,errorStart))+`<span class="error-selection">${esc(t.slice(errorStart,errorEnd))}</span>`+esc(t.slice(errorEnd))+'<div class="ok-text" style="margin-top:8px">✓ 红色高亮部分就是成员需要找出的错误点</div>'}
+async function saveQuestion(){let type=qType.value,text=qText.value;if(!text.trim()){alert('请输入题目正文');return}let payload={type,text,enabled:true,answerText:qAnswer.value,noError:type==='correction'&&judgement==='correct',errorStart,errorEnd};if(type==='correction'&&judgement==='wrong'&&(errorStart==null||errorEnd==null)){alert('这道题设置为“有错误”，请先拖选并确认具体错误位置');return}if(type==='correction'&&judgement==='wrong'&&(errorStart<0||errorEnd<=errorStart||errorEnd>text.length)){alert('错误位置已经失效，请重新选择错误文字');errorStart=errorEnd=null;rangeText.textContent='请重新选择错误位置';updatePreview();return}if(type==='subjective'&&!qAnswer.value.trim()){alert('请输入主观题标准答案');return}try{let id=qId.value;await api(id?'/api/admin/questions/'+id:'/api/admin/questions',{method:id?'PUT':'POST',body:JSON.stringify(payload)});closeQuestion();await loadQuestions()}catch(e){alert(e.message)}}
+async function deleteQuestion(id){if(!confirm('确定删除这道题吗？'))return;try{await api('/api/admin/questions/'+id,{method:'DELETE'});await loadQuestions()}catch(e){alert(e.message)}}
+async function moveQuestion(id,direction){try{await api('/api/admin/questions/'+id+'/move',{method:'POST',body:JSON.stringify({direction})});await loadQuestions()}catch(e){alert(e.message)}}
+
+function ranked(ps){let submitted=ps.filter(p=>p.status==='submitted').sort((a,b)=>(+b.correctRate||0)-(+a.correctRate||0)||(+a.elapsedSeconds||0)-(+b.elapsedSeconds||0)||String(a.name).localeCompare(String(b.name),'zh-CN'));let rank=new Map(submitted.map((p,i)=>[String(p.id),i+1]));let ongoing=ps.filter(p=>p.status!=='submitted').sort((a,b)=>(+b.correctRate||0)-(+a.correctRate||0));return {rows:[...submitted,...ongoing],rank}}
+async function loadParticipants(){
+  try{
+    let j=await api('/api/admin/participants'),ps=j.participants||[];
+    questionStats=j.questionStats||[];
+    let sub=ps.filter(x=>x.status==='submitted').length;
+    let act=ps.length-sub;
+    let avg=ps.length?(ps.reduce((a,b)=>a+(+b.correctRate||0),0)/ps.length):0;
+    kpis.innerHTML=`<div class="kpi"><span class="muted">当前成员</span><b>${ps.length}</b></div><div class="kpi"><span class="muted">作答中</span><b>${act}</b></div><div class="kpi"><span class="muted">已交卷</span><b>${sub}</b></div><div class="kpi"><span class="muted">平均正确率</span><b>${rate(avg)}</b></div>`;
+    renderParticipants(ps);
+    renderQuestionStats(questionStats);
+  }catch(e){console.error(e)}
+}
+function participantStatusInfo(p){
+  if(p.status==='submitted')return {text:'已交卷',cls:'ok-text'};
+  return {text:'作答中',cls:'warn-text'};
+}
+function renderParticipants(ps){
+  let score=exam?.scoringMode==='score';
+  participantHead.innerHTML=`<tr><th>排名</th><th>姓名</th><th>状态</th><th>进度</th><th>正确</th><th>错误/未答</th><th>正确率</th>${score?'<th>成绩</th><th>结果</th>':''}<th>用时</th><th>操作</th></tr>`;
+  participantBody.innerHTML=ps.length?'':'<tr><td colspan="12" class="muted">暂无成员记录</td></tr>';
+  let r=ranked(ps);
+  r.rows.forEach(p=>{
+    let rk=r.rank.get(String(p.id))||'-';
+    let pass=(+p.score>=+exam.passScore);
+    let st=participantStatusInfo(p);
+    let canCollect=p.status!=='submitted'&&exam.status==='running';
+    let canReset=exam.status!=='ended';
+    let tr=document.createElement('tr');
+    tr.innerHTML=`<td class="rank">${rk}</td><td>${esc(p.name)}</td><td class="${st.cls}">${st.text}</td><td>${p.answeredCount}/${p.totalQuestions}</td><td>${p.correctCount}</td><td>${p.wrongCount}</td><td class="rate">${rate(p.correctRate)}</td>${score?`<td>${(+p.score).toFixed(1)}</td><td class="${pass?'ok-text':'bad-text'}">${p.status==='submitted'?(pass?'通过':'未通过'):'-'}</td>`:''}<td>${fmt(p.elapsedSeconds)}</td><td><button class="btn small" onclick="showParticipant(${p.id})">详情/改判</button>${canCollect?` <button class="btn small danger" onclick="collectParticipant(${p.id},'${esc(p.name)}')">收卷</button>`:''}${canReset?` <button class="btn small" onclick="resetParticipant(${p.id})">重置</button>`:''}</td>`;
+    participantBody.appendChild(tr);
+  })
+}
+function renderQuestionStats(stats){questionStatsBody.innerHTML=stats.length?'':'<tr><td colspan="6" class="muted">考试开始后会在这里显示每道题的正确率。</td></tr>';stats.forEach(s=>{let tr=document.createElement('tr'),cls=+s.accuracy<60?'analysis-low':'';tr.innerHTML=`<td>第 ${s.position} 题</td><td>${esc(s.text)}</td><td>${s.correctCount}</td><td>${s.wrongCount}</td><td>${s.unansweredCount}</td><td class="rate ${cls}">${rate(s.accuracy)}</td>`;questionStatsBody.appendChild(tr)})}
+async function resetParticipant(id){if(!confirm('确定重置该成员的本场考试记录吗？重置后该姓名可以重新进入考试。'))return;try{await api('/api/admin/participants/'+id,{method:'DELETE'});await loadParticipants()}catch(e){alert(e.message)}}
+function answerDisplay(a){if(a.userAnswer==null)return'未作答';if(a.type==='subjective')return esc(a.userAnswer);if(a.userAnswer==='本题无错误')return'本题正确';let i=parseInt(a.userAnswer);return Number.isFinite(i)?`点击：“${esc(a.text[i]||'')}”（字符位置 ${i}）`:esc(a.userAnswer)}
+async function collectParticipant(id,name){
+  if(!confirm(`确定收取 ${name} 的试卷吗？
+
+收卷后：
+- 该成员不能继续作答；
+- 未作答题目按未答处理；
+- 会立即重新计算正确率/成绩和排名；
+- 收卷后仍可进入详情进行人工改判。`))return;
+  try{
+    await api(`/api/admin/participants/${id}/collect`,{method:'POST',body:'{}'});
+    await loadParticipants();
+    alert(`${name} 已由管理员收卷。`);
+  }catch(e){alert(e.message)}
+}
+async function reviewAnswer(participantId,questionId,isCorrect){
+  let label=isCorrect?'正确':'错误';
+  if(!confirm(`确定把这道题人工改判为“${label}”吗？\n\n成员原始作答不会被修改，系统只修改判定结果，并立即重新计算正确率和排名。`))return;
+  try{
+    await api(`/api/admin/participants/${participantId}/answers/${questionId}/review`,{method:'PUT',body:JSON.stringify({isCorrect})});
+    await loadParticipants();
+    await showParticipant(participantId);
+  }catch(e){alert(e.message)}
+}
+async function restoreAutoReview(participantId,questionId){
+  if(!confirm('确定恢复这道题的自动判定结果吗？'))return;
+  try{
+    await api(`/api/admin/participants/${participantId}/answers/${questionId}/review`,{method:'PUT',body:JSON.stringify({restoreAuto:true})});
+    await loadParticipants();
+    await showParticipant(participantId);
+  }catch(e){alert(e.message)}
+}
+async function showParticipant(id){
+  try{
+    let j=await api('/api/admin/participants/'+id),p=j.participant,as=j.answers||[];
+    let submitMap={admin_collect:'管理员收卷',timeout:'超时交卷',admin_end:'管理员结束考试',manual:'主动交卷',completed:'正常完成'};let h=`<div class="notice">人工改判只修改“正确/错误”判定，不会修改成员的原始作答内容。改判后正确率和排名会自动重算。</div><div class="grid" style="margin-top:12px"><div><b>姓名：</b>${esc(p.name)}</div><div><b>正确率：</b>${rate(p.score)}</div><div><b>正确：</b>${p.correctCount}</div><div><b>错误/未答：</b>${p.wrongCount}</div><div><b>开始：</b>${esc(p.startedAt)}</div><div><b>交卷：</b>${esc(p.submittedAt||'-')}</div><div><b>交卷方式：</b>${esc(submitMap[p.submitType]||'-')}</div></div>`;
+    as.forEach(a=>{
+      let std=a.type==='subjective'?'标准答案：'+esc(a.answerText||''):(a.noError?'标准答案：本题正确':'错误部分：'+`<span class="error-mark">${esc(a.correctText||'')}</span>`);
+      let result=a.isCorrect==null?'未作答':(a.isCorrect?'✅ 正确':'❌ 错误');
+      let reviewTag=a.adminOverride?` <span class="badge">人工改判</span>`:'';
+      let buttons=a.userAnswer==null?'':`<div class="toolbar" style="margin-top:10px"><button class="btn small" onclick="reviewAnswer(${p.id},${a.questionId},true)">判为正确</button><button class="btn small danger" onclick="reviewAnswer(${p.id},${a.questionId},false)">判为错误</button>${a.adminOverride?`<button class="btn small" onclick="restoreAutoReview(${p.id},${a.questionId})">恢复自动判定</button>`:''}</div>`;
+      h+=`<div class="q"><b>管理员第 ${a.position} 题</b> · 成员实际第 ${a.memberOrder} 题 · ${result}${reviewTag}<div class="qtext">${a.type==='correction'&&!a.noError&&a.correctText?esc(a.text).replace(esc(a.correctText),`<span class="error-mark">${esc(a.correctText)}</span>`):esc(a.text)}</div><div class="answer-note">成员原始作答：${answerDisplay(a)}</div><div class="answer-note">${std}</div>${a.adminOverride?`<div class="muted" style="margin-top:6px">人工改判时间：${esc(a.reviewedAt||'')}</div>`:''}${buttons}</div>`;
+    });
+    detailTitle.textContent='成员答题详情 / 人工改判';
+    detailContent.innerHTML=h;
+    detailModal.classList.remove('hidden');
+  }catch(e){alert(e.message)}
+}
+
+async function loadHistory(){try{historyItems=(await api('/api/admin/history')).history||[];renderHistory()}catch(e){console.error(e)}}
+function clearHistoryFilter(){historyName.value='';historyDate.value='';renderHistory()}
+function renderHistory(){
+  let name=(historyName.value||'').trim().toLowerCase();
+  let date=historyDate.value;
+  let items=historyItems.filter(x=>
+    (!name||String(x.name).toLowerCase().includes(name)) &&
+    (!date||String(x.endedAt||x.startedAt).slice(0,10)===date)
+  );
+
+  historyList.innerHTML=items.length?'':'<div class="notice">没有符合条件的历史考试。</div>';
+
+  items.forEach(x=>{
+    let mode=x.scoringMode||'accuracy';
+    let meta=mode==='score'
+      ?`平均正确率 ${rate(x.averageAccuracy)} · 通过 ${x.passedCount} 人`
+      :`平均正确率 ${rate(x.averageAccuracy)}`;
+
+    let d=document.createElement('div');
+    d.className='history-row';
+    d.title='点击查看考试详情';
+    d.onclick=()=>showHistory(x.id);
+
+    d.innerHTML=`
+      <div class="history-main">
+        <div>
+          <b>${esc(x.name)}</b>
+          <div class="history-meta">
+            <span>${esc(x.endedAt||x.startedAt||'')}</span>
+            <span>${x.participantCount} 人参加</span>
+            <span>${meta}</span>
+            <span>${x.questionCount} 题</span>
+          </div>
+        </div>
+        <span class="muted" style="font-size:13px;white-space:nowrap">点击查看详情 ›</span>
+      </div>
+      <div class="history-actions">
+        <button class="btn small primary" data-action="detail">查看详情</button>
+        <button class="btn small" data-action="retest">重新测验</button>
+        <button class="btn small" data-action="export">导出 Excel</button>
+      </div>`;
+
+    d.querySelector('[data-action="detail"]').onclick=e=>{
+      e.stopPropagation();
+      showHistory(x.id);
+    };
+    d.querySelector('[data-action="retest"]').onclick=e=>{
+      e.stopPropagation();
+      retestHistory(x.id);
+    };
+    d.querySelector('[data-action="export"]').onclick=e=>{
+      e.stopPropagation();
+      downloadHistory(x.id);
+    };
+
+    historyList.appendChild(d);
+  });
+}
+function elapsedHistory(p){try{return Math.max(0,(new Date(String(p.submittedAt).replace(' ','T'))-new Date(String(p.startedAt).replace(' ','T')))/1000)}catch{return 0}}
+function historyAccuracy(p){let t=+p.totalQuestions||0;return t?((+p.correctCount||0)/t*100):(+p.score||0)}
+function historyRank(ps){return [...arr(ps)].sort((a,b)=>historyAccuracy(b)-historyAccuracy(a)||elapsedHistory(a)-elapsedHistory(b)||String(a.name||'').localeCompare(String(b.name||''),'zh-CN'))}
+let historyReviewState={
+  examId:'',
+  mode:'question',
+  questionId:null,
+  participantId:null,
+  search:'',
+  errorsOnly:false,
+  subjectiveOnly:false,
+  ctx:null
+};
+
+function historyQuestionMap(exam){
+  return new Map(arr(exam.activeQuestions).map(q=>[String(q.id),q]));
+}
+function historyAnswerMap(p){
+  return new Map(arr(p.answers).map(a=>[String(a.questionId),a]));
+}
+function historyMemberAnswer(q,a){
+  if(!a)return '未作答';
+  if(q.type==='subjective')return esc(a.userAnswer||'');
+  if(a.userAnswer==='本题无错误')return '本题正确';
+  let ci=parseInt(a.userAnswer);
+  if(Number.isFinite(ci)){
+    let ch=String(q.text||'').slice(ci,ci+1);
+    return `点击：${esc(ch||'')}`;
+  }
+  return esc(a.userAnswer||'');
+}
+function historyStandardAnswer(q){
+  if(q.type==='subjective')return esc(q.answerText||'');
+  if(q.noError)return '本题正确';
+  return esc(String(q.text||'').slice(+q.errorStart||0,+q.errorEnd||0));
+}
+function historyAnswerResult(a){
+  if(!a)return {label:'未作答',cls:'muted',weight:1};
+  if(a.isCorrect)return {label:'✓ 正确',cls:'ok-text',weight:2};
+  return {label:'✕ 错误',cls:'bad-text',weight:0};
+}
+function historyQuestionStat(questionId){
+  let ctx=historyReviewState.ctx;
+  return arr(ctx?.stats).find(x=>String(x.questionId)===String(questionId))||null;
+}
+function setHistoryReviewMode(mode){
+  historyReviewState.mode=mode==='member'?'member':'question';
+  historyReviewState.search='';
+  historyReviewState.errorsOnly=false;
+  historyReviewState.subjectiveOnly=false;
+  renderHistoryReview();
+}
+function selectHistoryQuestion(id){
+  historyReviewState.questionId=String(id);
+  renderHistoryReview();
+}
+function selectHistoryParticipant(id){
+  historyReviewState.participantId=String(id);
+  renderHistoryReview();
+}
+function moveHistoryReview(step){
+  let s=historyReviewState,ctx=s.ctx;
+  if(!ctx)return;
+  if(s.mode==='question'){
+    let list=arr(ctx.questions).sort((a,b)=>(+a.position||0)-(+b.position||0));
+    let i=list.findIndex(q=>String(q.id)===String(s.questionId));
+    if(i<0)i=0;
+    i=Math.max(0,Math.min(list.length-1,i+step));
+    if(list[i])s.questionId=String(list[i].id);
+  }else{
+    let list=arr(ctx.rankedPs);
+    let i=list.findIndex(p=>String(p.id)===String(s.participantId));
+    if(i<0)i=0;
+    i=Math.max(0,Math.min(list.length-1,i+step));
+    if(list[i])s.participantId=String(list[i].id);
+  }
+  renderHistoryReview();
+}
+function updateHistoryReviewSearch(v){
+  historyReviewState.search=String(v||'');
+  renderHistoryReview();
+}
+function toggleHistoryReviewErrors(v){
+  historyReviewState.errorsOnly=!!v;
+  renderHistoryReview();
+}
+function toggleHistoryReviewSubjective(v){
+  historyReviewState.subjectiveOnly=!!v;
+  renderHistoryReview();
+}
+function historyReviewButtons(examId,p,q,a){
+  if(!a)return '';
+  return `<div class="toolbar" style="margin-top:9px">
+    <button class="btn small" onclick="reviewHistoryAnswer('${examId}',${p.id},${q.id},true)">判为正确</button>
+    <button class="btn small danger" onclick="reviewHistoryAnswer('${examId}',${p.id},${q.id},false)">判为错误</button>
+    ${a.adminOverride?`<button class="btn small" onclick="restoreHistoryReview('${examId}',${p.id},${q.id})">恢复自动判定</button>`:''}
+  </div>`;
+}
+
+function renderHistoryReview(){
+  let s=historyReviewState,ctx=s.ctx,root=$('historyReviewRoot');
+  if(!root||!ctx)return;
+
+  let e=ctx.exam,questions=arr(ctx.questions),rankedPs=arr(ctx.rankedPs);
+  let modeQuestion=s.mode==='question';
+  let placeholder=modeQuestion?'搜索题号或题目内容':'搜索成员姓名';
+
+  let toolbar=`<div class="review-topbar">
+    <div>
+      <div class="section-title" style="margin:0 0 4px">答题复核</div>
+      <div class="muted">默认按题目复核；也可以切换到按成员查看。人工改判后会自动重算正确率和排名，并保持当前复核位置。</div>
+    </div>
+    <div class="review-tabs">
+      <button class="review-tab ${modeQuestion?'active':''}" onclick="setHistoryReviewMode('question')">按题目查看</button>
+      <button class="review-tab ${!modeQuestion?'active':''}" onclick="setHistoryReviewMode('member')">按成员查看</button>
+    </div>
+  </div>
+  <div class="review-tools" style="margin-top:12px">
+    <input type="text" value="${esc(s.search)}" placeholder="${placeholder}" oninput="updateHistoryReviewSearch(this.value)">
+    <label><input type="checkbox" ${s.errorsOnly?'checked':''} onchange="toggleHistoryReviewErrors(this.checked)"> 只看需要复核</label>
+    ${modeQuestion?`<label><input type="checkbox" ${s.subjectiveOnly?'checked':''} onchange="toggleHistoryReviewSubjective(this.checked)"> 只看主观题</label>`:''}
+  </div>`;
+
+  if(modeQuestion){
+    let list=questions
+      .filter(q=>!s.subjectiveOnly||q.type==='subjective')
+      .filter(q=>!s.search||(`第${q.position}题 ${q.text}`).toLowerCase().includes(s.search.toLowerCase()))
+      .sort((a,b)=>(+a.position||0)-(+b.position||0));
+
+    if(!list.some(q=>String(q.id)===String(s.questionId))){
+      s.questionId=list[0]?String(list[0].id):null;
+    }
+    let selected=list.find(q=>String(q.id)===String(s.questionId))||null;
+
+    let left=list.map(q=>{
+      let st=historyQuestionStat(q.id)||{};
+      let attention=(+st.wrongCount||0)+(+st.unansweredCount||0);
+      return `<div class="review-item ${selected&&String(selected.id)===String(q.id)?'active':''}" onclick="selectHistoryQuestion('${q.id}')">
+        <div class="review-item-title"><span>第 ${q.position} 题</span><span class="${(+st.accuracy||0)<60?'bad-text':'rate'}">${rate(st.accuracy)}</span></div>
+        <div class="review-item-meta">${q.type==='subjective'?'主观题':'判断纠错题'} · 错误/未答 ${attention} 人<br>${esc(String(q.text||'').slice(0,44))}${String(q.text||'').length>44?'…':''}</div>
+      </div>`;
+    }).join('');
+
+    let panel='<div class="review-empty">没有符合条件的题目。</div>';
+    if(selected){
+      let st=historyQuestionStat(selected.id)||{};
+      let rows=rankedPs.map((p,rankIndex)=>{
+        let amap=historyAnswerMap(p),a=amap.get(String(selected.id))||null,res=historyAnswerResult(a);
+        let memberOrder=arr(p.questionOrder).findIndex(x=>String(x)===String(selected.id))+1;
+        return {p,a,res,rankIndex,memberOrder};
+      });
+
+      // Wrong first, then unanswered, then correct. This keeps items needing review at the top.
+      rows.sort((a,b)=>a.res.weight-b.res.weight||a.rankIndex-b.rankIndex);
+      if(s.errorsOnly)rows=rows.filter(x=>!x.a||!x.a.isCorrect);
+
+      let body=rows.length?rows.map(x=>`<div class="review-answer-row">
+        <div class="review-answer-main">
+          <div>
+            <b>${esc(x.p.name)}</b>
+            <div class="${x.res.cls} review-result">${x.res.label}${x.a&&x.a.adminOverride?' · 人工改判':''}</div>
+            <div class="muted" style="font-size:12px">综合排名 #${x.rankIndex+1}${x.memberOrder>0?` · 成员第 ${x.memberOrder} 题`:''}</div>
+          </div>
+          <div>
+            <div class="review-answer-text">${historyMemberAnswer(selected,x.a)}</div>
+            ${x.a&&x.a.adminOverride?`<div class="muted" style="margin-top:5px">系统原判：${x.a.autoIsCorrect?'正确':'错误'} · 改判时间：${esc(x.a.reviewedAt||'')}</div>`:''}
+            ${historyReviewButtons(e.id,x.p,selected,x.a)}
+          </div>
+        </div>
+      </div>`).join(''):'<div class="review-empty">当前筛选条件下没有需要复核的成员。</div>';
+
+      panel=`<div class="review-panel-head">
+        <div>
+          <b>第 ${selected.position} 题 · ${selected.type==='subjective'?'主观题':'判断纠错题'}</b>
+          <div class="qtext" style="margin-top:7px">${esc(selected.text)}</div>
+        </div>
+        <div class="review-nav">
+          <button class="btn small" onclick="moveHistoryReview(-1)">上一题</button>
+          <button class="btn small" onclick="moveHistoryReview(1)">下一题</button>
+        </div>
+      </div>
+      <div class="kpis" style="margin-top:12px">
+        <div class="kpi"><span class="muted">正确</span><b>${st.correctCount||0}</b></div>
+        <div class="kpi"><span class="muted">错误</span><b>${st.wrongCount||0}</b></div>
+        <div class="kpi"><span class="muted">未作答</span><b>${st.unansweredCount||0}</b></div>
+        <div class="kpi"><span class="muted">正确率</span><b>${rate(st.accuracy)}</b></div>
+      </div>
+      <div class="review-standard"><b>标准答案：</b>${historyStandardAnswer(selected)}</div>
+      <div style="margin-top:10px">${body}</div>`;
+    }
+
+    root.innerHTML=toolbar+`<div class="review-layout"><div class="review-list">${left||'<div class="review-empty">没有符合条件的题目。</div>'}</div><div class="review-panel">${panel}</div></div>`;
+    return;
+  }
+
+  let members=rankedPs
+    .filter(p=>!s.search||String(p.name||'').toLowerCase().includes(s.search.toLowerCase()));
+
+  if(!members.some(p=>String(p.id)===String(s.participantId))){
+    s.participantId=members[0]?String(members[0].id):null;
+  }
+  let selectedP=members.find(p=>String(p.id)===String(s.participantId))||null;
+
+  let left=members.map((p,i)=>{
+    let allRank=rankedPs.findIndex(x=>String(x.id)===String(p.id))+1;
+    return `<div class="review-item ${selectedP&&String(selectedP.id)===String(p.id)?'active':''}" onclick="selectHistoryParticipant('${p.id}')">
+      <div class="review-item-title"><span>#${allRank} ${esc(p.name)}</span><span class="rate">${rate(p.score)}</span></div>
+      <div class="review-item-meta">正确 ${p.correctCount} · 错误/未答 ${p.wrongCount} · 用时 ${fmt(elapsedHistory(p))}</div>
+    </div>`;
+  }).join('');
+
+  let panel='<div class="review-empty">没有符合条件的成员。</div>';
+  if(selectedP){
+    let qmap=historyQuestionMap(e),amap=historyAnswerMap(selectedP);
+    let ordered=arr(selectedP.questionOrder).map((qid,i)=>({q:qmap.get(String(qid)),i})).filter(x=>x.q);
+    if(s.errorsOnly)ordered=ordered.filter(x=>{
+      let a=amap.get(String(x.q.id));
+      return !a||!a.isCorrect;
+    });
+
+    let body=ordered.length?ordered.map(x=>{
+      let q=x.q,a=amap.get(String(q.id))||null,res=historyAnswerResult(a);
+      return `<div class="review-answer-row">
+        <div class="review-panel-head">
+          <div><b>成员第 ${x.i+1} 题 / 管理员第 ${q.position} 题</b> · <span class="${res.cls}">${res.label}</span>${a&&a.adminOverride?' <span class="badge">人工改判</span>':''}</div>
+        </div>
+        <div class="qtext">${esc(q.text)}</div>
+        <div class="review-standard"><b>成员原始作答：</b><span class="review-answer-text">${historyMemberAnswer(q,a)}</span><br><b>标准答案：</b>${historyStandardAnswer(q)}</div>
+        ${a&&a.adminOverride?`<div class="muted" style="margin-top:7px">系统原判：${a.autoIsCorrect?'正确':'错误'} · 改判时间：${esc(a.reviewedAt||'')}</div>`:''}
+        ${historyReviewButtons(e.id,selectedP,q,a)}
+      </div>`;
+    }).join(''):'<div class="review-empty">当前筛选条件下没有需要复核的题目。</div>';
+
+    let rank=rankedPs.findIndex(x=>String(x.id)===String(selectedP.id))+1;
+    panel=`<div class="review-panel-head">
+      <div>
+        <b>#${rank} ${esc(selectedP.name)}</b>
+        <div class="muted" style="margin-top:5px">正确率 ${rate(selectedP.score)} · 正确 ${selectedP.correctCount} · 错误/未答 ${selectedP.wrongCount} · 用时 ${fmt(elapsedHistory(selectedP))}</div>
+      </div>
+      <div class="review-nav">
+        <button class="btn small" onclick="moveHistoryReview(-1)">上一人</button>
+        <button class="btn small" onclick="moveHistoryReview(1)">下一人</button>
+      </div>
+    </div>${body}`;
+  }
+
+  root.innerHTML=toolbar+`<div class="review-layout"><div class="review-list">${left||'<div class="review-empty">没有符合条件的成员。</div>'}</div><div class="review-panel">${panel}</div></div>`;
+}
+
+async function reviewHistoryAnswer(examId,participantId,questionId,isCorrect){
+  let label=isCorrect?'正确':'错误';
+  if(!confirm(`确定把这道历史答题人工改判为“${label}”吗？\n\n成员原始答案会保留，正确率和排名会立即重新计算。`))return;
+  try{
+    await api(`/api/admin/history/${examId}/participants/${participantId}/answers/${questionId}/review`,{method:'PUT',body:JSON.stringify({isCorrect})});
+    await loadHistory();
+    await showHistory(examId,true);
+  }catch(e){alert(e.message)}
+}
+async function restoreHistoryReview(examId,participantId,questionId){
+  if(!confirm('确定恢复这道题的自动判定结果吗？'))return;
+  try{
+    await api(`/api/admin/history/${examId}/participants/${participantId}/answers/${questionId}/review`,{method:'PUT',body:JSON.stringify({restoreAuto:true})});
+    await loadHistory();
+    await showHistory(examId,true);
+  }catch(e){alert(e.message)}
+}
+async function showHistory(id,preserveReview=false){
+  try{
+    let j=await api('/api/admin/history/'+id);
+    let e=j.exam,s=j.summary,stats=arr(j.questionStats),mode=e.scoringMode||'accuracy';
+    let participants=arr(e.participants),questions=arr(e.activeQuestions);
+    if(!questions.length)questions=arr(e.questions);
+    let rankedPs=historyRank(participants);
+
+    if(!preserveReview||historyReviewState.examId!==String(id)){
+      historyReviewState={
+        examId:String(id),
+        mode:'question',
+        questionId:questions.length?String(questions.sort((a,b)=>(+a.position||0)-(+b.position||0))[0].id):null,
+        participantId:rankedPs.length?String(rankedPs[0].id):null,
+        search:'',
+        errorsOnly:false,
+        subjectiveOnly:false,
+        ctx:null
+      };
+    }
+
+    historyReviewState.ctx={exam:e,summary:s,stats,questions,rankedPs};
+
+    let h=`<div class="kpis">
+      <div class="kpi"><span class="muted">参加人数</span><b>${s.participantCount}</b></div>
+      <div class="kpi"><span class="muted">平均正确率</span><b>${rate(s.averageAccuracy)}</b></div>
+      <div class="kpi"><span class="muted">题目数量</span><b>${s.questionCount}</b></div>
+      <div class="kpi"><span class="muted">统计方式</span><b style="font-size:17px">${mode==='score'?'百分制':'正确率'}</b></div>
+    </div>
+    <div class="notice">开始：${esc(e.startedAt)}　结束：${esc(e.endedAt)}　考试时长：${e.durationMinutes} 分钟${mode==='score'?'　及格线：'+e.passScore+' 分':''}</div>
+    <div id="historyReviewRoot" class="review-section"></div>
+    <div class="section-title">综合排名</div>
+    <div class="muted" style="margin-bottom:10px">先按正确率从高到低；正确率相同则用时更短者排名更高。人工改判后自动重新排名。</div>
+    <div style="overflow:auto"><table><thead><tr><th>排名</th><th>姓名</th><th>正确</th><th>错误/未答</th><th>正确率</th>${mode==='score'?'<th>结果</th>':''}<th>用时</th></tr></thead><tbody>`;
+
+    rankedPs.forEach((p,i)=>{
+      h+=`<tr><td class="rank">${i+1}</td><td>${esc(p.name)}</td><td>${p.correctCount}</td><td>${p.wrongCount}</td><td class="rate">${rate(p.score)}</td>${mode==='score'?`<td class="${+p.score>=+e.passScore?'ok-text':'bad-text'}">${+p.score>=+e.passScore?'通过':'未通过'}</td>`:''}<td>${fmt(elapsedHistory(p))}</td></tr>`;
+    });
+
+    h+='</tbody></table></div><div class="section-title">题目统计</div><div style="overflow:auto"><table><thead><tr><th>题号</th><th>题目</th><th>正确</th><th>错误</th><th>未作答</th><th>正确率</th></tr></thead><tbody>';
+    stats.forEach(q=>{
+      h+=`<tr><td>第 ${q.position} 题</td><td>${esc(q.text)}</td><td>${q.correctCount}</td><td>${q.wrongCount}</td><td>${q.unansweredCount}</td><td class="rate">${rate(q.accuracy)}</td></tr>`;
+    });
+    h+='</tbody></table></div>';
+
+    detailTitle.textContent='历史考试 · '+e.name;
+    detailContent.innerHTML=h;
+    detailModal.classList.remove('hidden');
+    renderHistoryReview();
+  }catch(e){alert(e.message)}
+}
+async function retestHistory(id){
+  if(!confirm('确定基于这场历史考试创建一场新的重新测验吗？\n\n原历史成绩不会改变；如果当前有未开始的草稿考试，它会被替换。'))return;
+  try{
+    await api('/api/admin/history/'+id+'/retest',{method:'POST',body:'{}'});
+    detailModal.classList.add('hidden');
+    await Promise.all([loadExam(),loadQuestions(),loadParticipants(),loadHistory()]);
+    let firstTab=document.querySelector('.tab');
+    showTab('exam',firstTab);
+    alert('已创建新的重新测验。题目和考试设置已复制，历史记录保持不变。');
+  }catch(e){alert(e.message)}
+}
+async function downloadHistory(id){try{let r=await fetch('/api/admin/history/'+id+'/export.xlsx',{headers:{'X-Admin-Token':token}});if(!r.ok){let j=await r.json();throw Error(j.message||'导出失败')}let blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exam_'+id+'_results.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){alert(e.message)}}
+if(token)enter();
+</script>
+</body></html>

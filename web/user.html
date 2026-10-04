@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>考试系统</title>
+<style>
+:root{--bg:#f6f7fb;--line:#e5e8ef;--text:#222838;--muted:#7b8498;--p:#5368df;--ok:#239b64;--bad:#d84f5d}*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:"Microsoft YaHei",system-ui,sans-serif;color:var(--text)}button,input,textarea{font:inherit}.hidden{display:none!important}.wrap{max-width:900px;margin:auto;padding:24px}.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 7px 24px rgba(40,50,90,.05)}.login{max-width:500px;margin:10vh auto}.muted{color:var(--muted)}.field{margin-top:14px}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}input,textarea{width:100%;padding:12px;border:1px solid #cfd5e1;border-radius:10px}textarea{min-height:150px;resize:vertical}.btn{border:0;border-radius:10px;padding:11px 16px;cursor:pointer;background:#edf0f5}.btn.primary{background:var(--p);color:white}.btn.danger{background:var(--bad);color:white}.header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:18px}.timer{font-size:24px;font-weight:800;color:#b47722}.progress{height:9px;background:#e7eaf1;border-radius:99px;overflow:hidden;margin:12px 0}.progress>div{height:100%;background:var(--p)}.question{font-size:22px;line-height:2;margin:20px 0;white-space:pre-wrap}.char{display:inline-block;min-width:.45em;padding:0 1px;border-radius:4px;cursor:pointer}.char:hover{background:#eef0ff}.selected{background:#dfe3ff}.notice{padding:12px;border-radius:10px;margin-top:12px;background:#eef2ff;color:#4151b2}.answer-reveal{margin-top:12px;padding:14px;border-radius:12px;background:#fff8f0;border:1px solid #f1c58f;line-height:1.8}.answer-reveal .label{font-weight:700;margin-bottom:6px}.answer-reveal .correct-text{padding:10px 12px;background:#fff;border-radius:9px;border:1px solid #f0dfc9;white-space:pre-wrap}.answer-reveal mark{background:#ffd2d7;color:#9c2633;border-radius:4px;padding:1px 3px;font-weight:700}.answer-reveal .std-answer{white-space:pre-wrap;font-weight:700;color:#166534}.notice.ok{background:#eaf8f1;color:#1f7b50}.notice.bad{background:#fff0f1;color:#a83e48}.actions{display:flex;justify-content:space-between;gap:10px;margin-top:18px}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:18px}.sum{padding:16px;background:#fafbfc;border-radius:12px;text-align:center}.sum b{font-size:26px;display:block}.hero-rate{text-align:center;margin:22px 0}.hero-rate strong{font-size:56px;color:var(--p)}@media(max-width:700px){.wrap{padding:12px}.summary{grid-template-columns:repeat(2,1fr)}.question{font-size:18px}}
+
+.system-end-overlay{position:fixed;inset:0;background:rgba(20,27,45,.58);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100}
+.system-end-card{width:min(480px,94vw);background:#fff;border-radius:20px;padding:30px;box-shadow:0 22px 65px rgba(0,0,0,.22);text-align:center}
+.system-end-icon{width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;background:#eef1ff;color:#4657c6;font-size:28px;font-weight:800}
+.system-end-card h2{margin:0 0 10px;font-size:25px}
+.system-end-card .end-message{font-size:17px;line-height:1.8}
+.system-end-card .end-detail{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f8f9fc;color:#6f788d;font-size:13px;line-height:1.7}
+.system-end-card .end-actions{display:flex;gap:10px;justify-content:center;align-items:center;margin-top:18px;flex-wrap:wrap}
+.system-end-card .countdown{color:#778096;font-size:13px}
+</style></head><body><div class="wrap">
+<div id="entryView" class="card login"><h1 id="examName">考试系统</h1><p id="meta" class="muted">正在读取考试信息...</p><div class="field"><label>姓名</label><input id="nameInput" maxlength="50" placeholder="请输入姓名"></div><div class="field"><label>考试口令</label><input id="codeInput" placeholder="请输入管理员提供的口令"></div><button class="btn primary" style="width:100%;margin-top:16px" onclick="startExam()">开始考试</button><div id="entryMsg" class="notice bad hidden"></div></div>
+<div id="examView" class="hidden"><div class="header"><div><h2 id="title"></h2><div id="candidate" class="muted"></div></div><div id="timer" class="timer">--:--</div></div><div class="card"><div style="display:flex;justify-content:space-between"><b id="indexText"></b><span id="typeText" class="muted"></span></div><div class="progress"><div id="progressBar"></div></div><div id="questionText" class="question"></div><div id="subjective" class="hidden"><textarea id="answerInput" placeholder="请输入答案"></textarea><button class="btn primary" style="margin-top:10px" onclick="submitSubjective()">提交答案</button></div><div id="correction" class="hidden"><div class="muted">如果你认为题目正确，请点击“本题正确”；如果有错误，请直接点击题目中具体错误的文字。</div><button class="btn" style="margin-top:12px" onclick="submitNoError()">本题正确</button></div><div id="answerMsg" class="notice hidden"></div><div id="answerReveal" class="answer-reveal hidden"></div><div class="actions"><button class="btn danger" onclick="manualSubmit()">提前交卷</button><button id="nextBtn" class="btn primary hidden" onclick="goNext()">下一题</button></div></div></div>
+<div id="resultView" class="card hidden"><h1>考试完成</h1><div id="resultName" class="muted" style="margin-top:6px"></div><div class="hero-rate"><div class="muted">正确率</div><strong id="rRate">0%</strong></div><div class="summary"><div class="sum"><span class="muted">正确</span><b id="rCorrect"></b></div><div class="sum"><span class="muted">错误/未答</span><b id="rWrong"></b></div><div class="sum"><span class="muted">总题数</span><b id="rTotal"></b></div><div id="scoreSum" class="sum hidden"><span class="muted">成绩</span><b id="rScore"></b></div></div><div id="passMsg" class="notice hidden"></div><div id="submitInfo" class="muted" style="margin-top:12px"></div></div>
+</div>
+<div id="systemEndOverlay" class="system-end-overlay hidden">
+  <div class="system-end-card">
+    <div id="systemEndIcon" class="system-end-icon">✓</div>
+    <h2 id="systemEndTitle">考试已结束</h2>
+    <div id="systemEndText" class="end-message"></div>
+    <div id="systemEndDetail" class="end-detail">试卷已成功提交，未提交的当前输入不会再计入本次考试。</div>
+    <div class="end-actions">
+      <button id="viewResultNowBtn" class="btn primary" onclick="finishEndTransition()">立即查看结果</button>
+      <span id="systemEndCountdown" class="countdown"></span>
+    </div>
+  </div>
+</div>
+<script>
+let examToken=localStorage.getItem('examToken')||'',state=null,locked=false,timerHandle=null,baseMs=0,baseRemaining=0,autoNext=null,pendingResultState=null,heartbeatHandle=null,currentExamInfo=null,externalEndHandled=false,endTransitionTimer=null,endTransitionState=null,endTransitionSeconds=2;
+async function api(u,o={}){o.headers=Object.assign({'Content-Type':'application/json'},examToken?{'X-Exam-Token':examToken}:{},o.headers||{});let r=await fetch(u,o),j={};try{j=await r.json()}catch{}if(!r.ok)throw Error(j.message||'请求失败');return j}
+const fmt=n=>{n=Math.max(0,+n||0);let m=Math.floor(n/60),s=Math.floor(n%60);return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')};
+async function sendHeartbeat(){
+  if(!examToken)return;
+  try{
+    let j=await api('/api/exam/heartbeat',{method:'POST',body:'{}'});
+    if(j.state){
+      if(state&&state.status==='in_progress'&&j.state.status==='submitted'){
+        handleServerEndedExam(j.state);
+        return;
+      }
+      if(j.state.status==='in_progress'){
+        state=j.state;
+      }
+    }
+  }catch{}
+}
+function startHeartbeat(){
+  clearInterval(heartbeatHandle);
+  if(!examToken)return;
+  sendHeartbeat();
+  heartbeatHandle=setInterval(sendHeartbeat,5000);
+}
+async function load(){
+  try{
+    let e=(await api('/api/public')).exam;
+    currentExamInfo=e;
+    examName.textContent=e.name;
+    meta.textContent=`考试时长 ${e.durationMinutes} 分钟 · 共 ${e.questionCount} 题 · ${e.status==='running'?'考试进行中':e.status==='draft'?'考试尚未开始':'考试已结束'}`;
+  }catch{}
+
+  if(examToken){
+    try{
+      let j=await api('/api/exam/state');
+      if(currentExamInfo&&j.state&&currentExamInfo.id&&j.state.examId&&String(currentExamInfo.id)!==String(j.state.examId)){
+        localStorage.removeItem('examToken');
+        examToken='';
+        state=null;
+        return;
+      }
+      showState(j.state);
+      startHeartbeat();
+    }catch{
+      localStorage.removeItem('examToken');
+      examToken='';
+    }
+  }
+}
+async function startExam(){entryMsg.classList.add('hidden');try{let r=await fetch('/api/exam/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:nameInput.value,accessCode:codeInput.value})}),j=await r.json();if(!r.ok)throw Error(j.message);examToken=j.token;localStorage.setItem('examToken',examToken);externalEndHandled=false;showState(j.state);startHeartbeat()}catch(e){entryMsg.textContent=e.message;entryMsg.classList.remove('hidden')}}
+function showState(s){state=s;entryView.classList.add('hidden');if(s.status==='submitted'){showResult(s);return}resultView.classList.add('hidden');examView.classList.remove('hidden');title.textContent=s.examName;candidate.textContent='作答者：'+s.name;renderQuestion();startTimer()}
+function renderQuestion(){if(!state||state.status!=='in_progress')return;locked=false;pendingResultState=null;clearTimeout(autoNext);answerMsg.className='notice hidden';answerReveal.classList.add('hidden');answerReveal.innerHTML='';nextBtn.textContent='下一题';nextBtn.classList.add('hidden');answerInput.value='';let q=state.question,idx=state.currentIndex;indexText.textContent=`第 ${idx+1} / ${state.totalQuestions} 题`;progressBar.style.width=`${Math.round((idx/state.totalQuestions)*100)}%`;typeText.textContent=q.type==='correction'?'判断纠错题':'主观题';subjective.classList.toggle('hidden',q.type!=='subjective');correction.classList.toggle('hidden',q.type!=='correction');questionText.innerHTML='';if(q.type==='correction'){for(let i=0;i<q.text.length;){let cp=q.text.codePointAt(i),ch=String.fromCodePoint(cp),charIndex=i,s=document.createElement('span');s.className='char';s.textContent=ch;s.onclick=()=>submitChar(charIndex,s);questionText.appendChild(s);i+=ch.length}}else questionText.textContent=q.text}
+function msg(t,ok){answerMsg.textContent=t;answerMsg.className='notice '+(ok?'ok':'bad')}
+async function submitChar(i,el){if(locked)return;locked=true;document.querySelectorAll('.char').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');try{handle(await api('/api/exam/answer',{method:'POST',body:JSON.stringify({questionId:state.question.id,charIndex:i,noError:false})}))}catch(e){locked=false;msg(e.message,false)}}
+async function submitNoError(){if(locked)return;locked=true;try{handle(await api('/api/exam/answer',{method:'POST',body:JSON.stringify({questionId:state.question.id,noError:true})}))}catch(e){locked=false;msg(e.message,false)}}
+async function submitSubjective(){if(locked)return;if(!answerInput.value.trim()){msg('请输入答案',false);return}locked=true;try{handle(await api('/api/exam/answer',{method:'POST',body:JSON.stringify({questionId:state.question.id,answer:answerInput.value})}))}catch(e){locked=false;msg(e.message,false)}}
+function renderAnswerReveal(reveal){
+  answerReveal.innerHTML='';
+  if(!reveal){answerReveal.classList.add('hidden');return}
+  answerReveal.classList.remove('hidden');
+
+  let label=document.createElement('div');
+  label.className='label';
+  label.textContent='正确答案';
+  answerReveal.appendChild(label);
+
+  if(reveal.type==='subjective'){
+    let box=document.createElement('div');
+    box.className='std-answer';
+    box.textContent=reveal.answerText||'';
+    answerReveal.appendChild(box);
+    return;
+  }
+
+  if(reveal.noError){
+    let box=document.createElement('div');
+    box.className='std-answer';
+    box.textContent='本题正确';
+    answerReveal.appendChild(box);
+    return;
+  }
+
+  let box=document.createElement('div');
+  box.className='correct-text';
+  let text=String(reveal.text||'');
+  let start=Math.max(0,Number(reveal.errorStart||0));
+  let end=Math.min(text.length,Number(reveal.errorEnd||0));
+
+  box.appendChild(document.createTextNode(text.slice(0,start)));
+  let mark=document.createElement('mark');
+  mark.textContent=text.slice(start,end);
+  box.appendChild(mark);
+  box.appendChild(document.createTextNode(text.slice(end)));
+  answerReveal.appendChild(box);
+
+  let tip=document.createElement('div');
+  tip.className='muted';
+  tip.style.marginTop='6px';
+  tip.textContent='红色高亮部分为正确的错误点。';
+  answerReveal.appendChild(tip);
+}
+
+function goNext(){
+  if(pendingResultState){
+    let result=pendingResultState;
+    pendingResultState=null;
+    showResult(result);
+    return;
+  }
+  renderQuestion();
+}
+
+function handle(j){
+  const answeredCorrect=!!j.correct;
+  state=j.state;
+
+  if(j.completed||state.status==='submitted'){
+    if(answeredCorrect){
+      msg('回答正确，考试已完成。',true);
+      setTimeout(()=>showResult(state),700);
+    }else{
+      msg('回答错误，请查看正确答案后再查看结果。',false);
+      renderAnswerReveal(j.answerReveal);
+      pendingResultState=state;
+      nextBtn.textContent='查看结果';
+      nextBtn.classList.remove('hidden');
+    }
+    return;
+  }
+
+  if(answeredCorrect){
+    msg('回答正确，正在进入下一题…',true);
+    autoNext=setTimeout(renderQuestion,800);
+  }else{
+    msg('回答错误，请先查看正确答案，再点击“下一题”继续。',false);
+    renderAnswerReveal(j.answerReveal);
+    nextBtn.textContent='下一题';
+    nextBtn.classList.remove('hidden');
+  }
+}
+function lockExamInteraction(){
+  locked=true;
+  clearTimeout(autoNext);
+  document.querySelectorAll('#examView button,#examView input,#examView textarea').forEach(el=>{
+    el.disabled=true;
+  });
+  document.querySelectorAll('.char').forEach(el=>{
+    el.style.pointerEvents='none';
+  });
+}
+
+function finishEndTransition(){
+  if(!endTransitionState)return;
+  clearInterval(endTransitionTimer);
+  let result=endTransitionState;
+  endTransitionState=null;
+  systemEndOverlay.classList.add('hidden');
+  showResult(result);
+}
+
+function handleServerEndedExam(s){
+  if(externalEndHandled)return;
+  externalEndHandled=true;
+  state=s;
+  endTransitionState=s;
+
+  clearInterval(timerHandle);
+  clearInterval(heartbeatHandle);
+  clearTimeout(autoNext);
+  lockExamInteraction();
+
+  let title='考试已结束';
+  let text='系统已提交你的试卷。';
+  let detail='试卷已成功提交，未提交的当前输入不会再计入本次考试。';
+  let icon='✓';
+
+  if(s.submitType==='admin_collect'){
+    title='管理员已收卷';
+    text='管理员已收取你的试卷，本次作答已经结束。';
+    detail='你已经不能继续修改答案。已保存的作答会正常计入结果，当前尚未提交的输入不会计入。';
+    icon='✓';
+  }else if(s.submitType==='admin_end'){
+    title='本场考试已结束';
+    text='管理员已结束本场考试，系统已经自动提交你的试卷。';
+    detail='所有成员的本场考试已经结束。已保存的作答会正常计入结果。';
+    icon='■';
+  }else if(s.submitType==='timeout'){
+    title='考试时间已到';
+    text='倒计时已经结束，系统已自动提交你的试卷。';
+    detail='已保存的作答会计入结果；还未提交的当前输入不会计入本次考试。';
+    icon='⏱';
+  }
+
+  systemEndIcon.textContent=icon;
+  systemEndTitle.textContent=title;
+  systemEndText.textContent=text;
+  systemEndDetail.textContent=detail;
+
+  endTransitionSeconds=2;
+  systemEndCountdown.textContent=`${endTransitionSeconds} 秒后自动查看结果`;
+  systemEndOverlay.classList.remove('hidden');
+
+  clearInterval(endTransitionTimer);
+  endTransitionTimer=setInterval(()=>{
+    endTransitionSeconds--;
+    if(endTransitionSeconds<=0){
+      finishEndTransition();
+      return;
+    }
+    systemEndCountdown.textContent=`${endTransitionSeconds} 秒后自动查看结果`;
+  },1000);
+}
+
+function startTimer(){
+  clearInterval(timerHandle);
+  baseMs=Date.now();
+  baseRemaining=+state.remainingSeconds||0;
+
+  let tick=async()=>{
+    if(!state||state.status!=='in_progress')return;
+    let sec=Math.max(0,Math.ceil(baseRemaining-(Date.now()-baseMs)/1000));
+    timer.textContent=fmt(sec);
+
+    if(sec<=0){
+      clearInterval(timerHandle);
+      try{
+        let j=await api('/api/exam/submit',{method:'POST',body:JSON.stringify({submitType:'timeout'})});
+        if(!externalEndHandled)handleServerEndedExam(j.state);
+      }catch{}
+    }
+  };
+
+  tick();
+  timerHandle=setInterval(tick,1000);
+}
+async function manualSubmit(){if(!confirm('确定提前交卷吗？未作答题目会按错误处理。'))return;try{showResult((await api('/api/exam/submit',{method:'POST',body:JSON.stringify({submitType:'manual'})})).state)}catch(e){alert(e.message)}}
+function showResult(s){
+  state=s;
+  pendingResultState=null;
+  clearInterval(timerHandle);
+  clearInterval(heartbeatHandle);
+  clearTimeout(autoNext);
+  systemEndOverlay.classList.add('hidden');
+  clearInterval(endTransitionTimer);
+  endTransitionState=null;
+  document.querySelectorAll('#examView button,#examView input,#examView textarea').forEach(el=>{el.disabled=false});
+  document.querySelectorAll('.char').forEach(el=>{el.style.pointerEvents=''});
+
+  entryView.classList.add('hidden');
+  examView.classList.add('hidden');
+  resultView.classList.remove('hidden');
+
+  resultName.textContent='作答者：'+s.name;
+  rRate.textContent=(+s.score||0).toFixed(1)+'%';
+  rCorrect.textContent=s.correctCount;
+  rWrong.textContent=s.wrongCount;
+  rTotal.textContent=s.totalQuestions;
+
+  // 默认按“只统计正确率”处理。
+  // 只有服务器明确返回 scoringMode === 'score' 才显示成绩、及格线和通过状态。
+  const scoring=String(s.scoringMode||'accuracy').trim().toLowerCase()==='score';
+
+  scoreSum.classList.add('hidden');
+  passMsg.className='notice hidden';
+  passMsg.classList.add('hidden');
+  rScore.textContent='';
+  passMsg.textContent='';
+
+  if(scoring){
+    scoreSum.classList.remove('hidden');
+    passMsg.classList.remove('hidden');
+    rScore.textContent=(+s.score||0).toFixed(1);
+    const pass=+s.score>=+s.passScore;
+    passMsg.className='notice '+(pass?'ok':'bad');
+    passMsg.textContent=pass
+      ?`考试结果：通过（及格线 ${s.passScore} 分）`
+      :`考试结果：未通过（及格线 ${s.passScore} 分）`;
+  }
+
+  let map={
+    manual:'主动交卷',
+    timeout:'超时自动交卷',
+    completed:'全部题目作答完成',
+    admin_end:'管理员结束考试',
+    admin_collect:'管理员收卷'
+  };
+  submitInfo.textContent=`交卷时间：${s.submittedAt||'-'} · ${map[s.submitType]||s.submitType||''}`;
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')sendHeartbeat()});
+load();
+</script></body></html>
