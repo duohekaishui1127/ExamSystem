@@ -1,0 +1,50 @@
+{
+    "version":  3,
+    "admin":  {
+                  "user":  "admin",
+                  "password":  "admin123"
+              },
+    "counters":  {
+                     "question":  14,
+                     "participant":  1
+                 },
+    "currentExam":  {
+                        "id":  "EXAM-20261009-231120-9e07d7",
+                        "status":  "draft",
+                        "name":  "新考试",
+                        "durationMinutes":  30,
+                        "passScore":  80,
+                        "scoringMode":  "accuracy",
+                        "accessCode":  "123456",
+                        "randomizeQuestions":  true,
+                        "createdAt":  "2026-10-09 23:11:20",
+                        "startedAt":  "",
+                        "endedAt":  "",
+                        "questions":  [
+                                          {
+                                              "id":  14,
+                                              "position":  1,
+                                              "type":  "correction",
+                                              "text":  "qwertsd",
+                                              "answerText":  "",
+                                              "errorStart":  3,
+                                              "errorEnd":  7,
+                                              "noError":  false,
+                                              "enabled":  true,
+                                              "createdAt":  "2026-10-09 23:12:05",
+                                              "options":  [
+
+                                                          ],
+                                              "media":  [
+
+                                                        ]
+                                          }
+                                      ],
+                        "activeQuestions":  [
+
+                                            ],
+                        "participants":  [
+
+                                         ]
+                    }
+}

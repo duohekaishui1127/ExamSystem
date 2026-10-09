@@ -1,0 +1,235 @@
+{
+    "id":  "EXAM-20261009-222822-b729f4",
+    "status":  "ended",
+    "name":  "知识测验",
+    "durationMinutes":  30,
+    "passScore":  80,
+    "scoringMode":  "accuracy",
+    "accessCode":  "123456",
+    "randomizeQuestions":  true,
+    "createdAt":  "2026-10-09 22:28:22",
+    "startedAt":  "2026-10-09 23:06:15",
+    "endedAt":  "2026-10-09 23:11:02",
+    "questions":  [
+                      {
+                          "id":  10,
+                          "position":  1,
+                          "type":  "correction",
+                          "text":  "Reaction of Trans-4-(Phenylsulfonyl)-3-buten-2-one) in article title is correct.",
+                          "answerText":  "",
+                          "errorStart":  12,
+                          "errorEnd":  17,
+                          "noError":  false,
+                          "enabled":  true,
+                          "createdAt":  "2026-10-09 22:59:50",
+                          "options":  [
+
+                                      ],
+                          "media":  [
+
+                                    ]
+                      },
+                      {
+                          "id":  11,
+                          "position":  2,
+                          "type":  "correction",
+                          "text":  "Author name Chiara D\u0027Angelo abbreviation is C.D.A.",
+                          "answerText":  "",
+                          "errorStart":  44,
+                          "errorEnd":  50,
+                          "noError":  false,
+                          "enabled":  true,
+                          "createdAt":  "2026-10-09 23:01:16",
+                          "options":  [
+
+                                      ],
+                          "media":  [
+
+                                    ]
+                      },
+                      {
+                          "id":  12,
+                          "position":  3,
+                          "type":  "correction",
+                          "text":  "It\u0027s acceptable that article title have two or more notes.",
+                          "answerText":  "",
+                          "errorStart":  40,
+                          "errorEnd":  51,
+                          "noError":  false,
+                          "enabled":  true,
+                          "createdAt":  "2026-10-09 23:01:37",
+                          "options":  [
+
+                                      ],
+                          "media":  [
+
+                                    ]
+                      },
+                      {
+                          "id":  13,
+                          "position":  4,
+                          "type":  "subjective",
+                          "text":  "",
+                          "answerText":  "123",
+                          "errorStart":  null,
+                          "errorEnd":  null,
+                          "noError":  false,
+                          "enabled":  true,
+                          "createdAt":  "2026-10-09 23:02:26",
+                          "options":  [
+
+                                      ],
+                          "media":  [
+                                        {
+                                            "name":  "图片1.png",
+                                            "data":  "/media/b0c60f7a63b04076877edb4a438c056f.png",
+                                            "size":  41550
+                                        }
+                                    ]
+                      }
+                  ],
+    "activeQuestions":  [
+                            {
+                                "id":  10,
+                                "position":  1,
+                                "type":  "correction",
+                                "text":  "Reaction of Trans-4-(Phenylsulfonyl)-3-buten-2-one) in article title is correct.",
+                                "answerText":  "",
+                                "errorStart":  12,
+                                "errorEnd":  17,
+                                "noError":  false,
+                                "enabled":  true,
+                                "createdAt":  "2026-10-09 22:59:50",
+                                "options":  [
+
+                                            ],
+                                "media":  [
+
+                                          ]
+                            },
+                            {
+                                "id":  11,
+                                "position":  2,
+                                "type":  "correction",
+                                "text":  "Author name Chiara D\u0027Angelo abbreviation is C.D.A.",
+                                "answerText":  "",
+                                "errorStart":  44,
+                                "errorEnd":  50,
+                                "noError":  false,
+                                "enabled":  true,
+                                "createdAt":  "2026-10-09 23:01:16",
+                                "options":  [
+
+                                            ],
+                                "media":  [
+
+                                          ]
+                            },
+                            {
+                                "id":  12,
+                                "position":  3,
+                                "type":  "correction",
+                                "text":  "It\u0027s acceptable that article title have two or more notes.",
+                                "answerText":  "",
+                                "errorStart":  40,
+                                "errorEnd":  51,
+                                "noError":  false,
+                                "enabled":  true,
+                                "createdAt":  "2026-10-09 23:01:37",
+                                "options":  [
+
+                                            ],
+                                "media":  [
+
+                                          ]
+                            },
+                            {
+                                "id":  13,
+                                "position":  4,
+                                "type":  "subjective",
+                                "text":  "",
+                                "answerText":  "123",
+                                "errorStart":  null,
+                                "errorEnd":  null,
+                                "noError":  false,
+                                "enabled":  true,
+                                "createdAt":  "2026-10-09 23:02:26",
+                                "options":  [
+
+                                            ],
+                                "media":  [
+                                              {
+                                                  "name":  "图片1.png",
+                                                  "data":  "/media/b0c60f7a63b04076877edb4a438c056f.png",
+                                                  "size":  41550
+                                              }
+                                          ]
+                            }
+                        ],
+    "participants":  [
+                         {
+                             "id":  1,
+                             "examToken":  "2ac543765cfc432e956b2115247dbec7",
+                             "name":  "xu",
+                             "clientIp":  "192.168.3.62",
+                             "lastSeenAt":  "2026-10-09 23:08:52",
+                             "startedAt":  "2026-10-09 23:06:17",
+                             "expiresAt":  "2026-10-09 23:36:17",
+                             "submittedAt":  "2026-10-09 23:07:35",
+                             "submitType":  "completed",
+                             "status":  "submitted",
+                             "score":  100,
+                             "totalQuestions":  4,
+                             "correctCount":  4,
+                             "wrongCount":  0,
+                             "questionOrder":  [
+                                                   12,
+                                                   11,
+                                                   10,
+                                                   13
+                                               ],
+                             "answers":  [
+                                             {
+                                                 "questionId":  12,
+                                                 "userAnswer":  "42",
+                                                 "isCorrect":  true,
+                                                 "autoIsCorrect":  true,
+                                                 "adminOverride":  false,
+                                                 "reviewedAt":  "",
+                                                 "reviewNote":  "",
+                                                 "answeredAt":  "2026-10-09 23:06:53"
+                                             },
+                                             {
+                                                 "questionId":  11,
+                                                 "userAnswer":  "46",
+                                                 "isCorrect":  true,
+                                                 "autoIsCorrect":  true,
+                                                 "adminOverride":  false,
+                                                 "reviewedAt":  "",
+                                                 "reviewNote":  "",
+                                                 "answeredAt":  "2026-10-09 23:06:57"
+                                             },
+                                             {
+                                                 "questionId":  10,
+                                                 "userAnswer":  "14",
+                                                 "isCorrect":  true,
+                                                 "autoIsCorrect":  true,
+                                                 "adminOverride":  false,
+                                                 "reviewedAt":  "",
+                                                 "reviewNote":  "",
+                                                 "answeredAt":  "2026-10-09 23:07:09"
+                                             },
+                                             {
+                                                 "questionId":  13,
+                                                 "userAnswer":  "fygtk",
+                                                 "isCorrect":  true,
+                                                 "autoIsCorrect":  false,
+                                                 "adminOverride":  true,
+                                                 "reviewedAt":  "2026-10-09 23:10:26",
+                                                 "reviewNote":  "",
+                                                 "answeredAt":  "2026-10-09 23:07:35"
+                                             }
+                                         ]
+                         }
+                     ]
+}

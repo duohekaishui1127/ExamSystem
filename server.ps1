@@ -10,6 +10,8 @@ $WebDir = Join-Path $BaseDir "web"
 $DataDir = Join-Path $BaseDir "data"
 $DataFile = Join-Path $DataDir "exam_data.json"
 $HistoryDir = Join-Path $DataDir "history"
+$MediaDir = Join-Path $DataDir "media"
+if (-not (Test-Path $MediaDir)) { New-Item -ItemType Directory -Path $MediaDir | Out-Null }
 
 if (-not (Test-Path $DataDir)) { New-Item -ItemType Directory -Path $DataDir | Out-Null }
 if (-not (Test-Path $HistoryDir)) { New-Item -ItemType Directory -Path $HistoryDir | Out-Null }
@@ -259,9 +261,9 @@ function Get-AnswerReveal {
 
     if ($null -eq $Question) { return $null }
 
-    if ([string]$Question.type -eq "subjective") {
+    if ([string]$Question.type -in @("subjective","single","multiple")) {
         return [ordered]@{
-            type = "subjective"
+            type = [string]$Question.type
             answerText = [string]$Question.answerText
         }
     }
@@ -528,6 +530,8 @@ function Get-PublicState {
                 position = $q.position
                 type = $q.type
                 text = $q.text
+                options = @(As-Array $q.options)
+                media = @(As-Array $q.media)
             }
         }
     }
@@ -587,11 +591,9 @@ function Get-XlsxColumnIndex {
 function Get-XlsxNodeText {
     param($Node)
     if ($null -eq $Node) { return "" }
-    $texts = @($Node.SelectNodes(".//*[local-name()='t']"))
-    if ($texts.Count -gt 0) {
-        return (($texts | ForEach-Object { [string]$_.InnerText }) -join "")
-    }
-    return [string]$Node.InnerText
+    $text = New-Object System.Text.StringBuilder
+    foreach ($part in $Node.SelectNodes(".//*[local-name()='t']")) { [void]$text.Append($part.InnerText) }
+    return $text.ToString()
 }
 
 function Read-XlsxImportRecords {
@@ -605,13 +607,13 @@ function Read-XlsxImportRecords {
     $zip = New-Object System.IO.Compression.ZipArchive($memory, [System.IO.Compression.ZipArchiveMode]::Read, $false)
 
     try {
-        $sharedStrings = @()
+        $sharedStrings = New-Object System.Collections.ArrayList
         $sharedEntry = $zip.GetEntry("xl/sharedStrings.xml")
         if ($null -ne $sharedEntry) {
             $reader = New-Object System.IO.StreamReader($sharedEntry.Open(), [System.Text.Encoding]::UTF8)
             try { [xml]$sharedXml = $reader.ReadToEnd() } finally { $reader.Dispose() }
             foreach ($si in @($sharedXml.SelectNodes("//*[local-name()='si']"))) {
-                $sharedStrings += (Get-XlsxNodeText $si)
+                [void]$sharedStrings.Add((Get-XlsxNodeText $si))
             }
         }
 
@@ -622,8 +624,14 @@ function Read-XlsxImportRecords {
         $reader = New-Object System.IO.StreamReader($workbookEntry.Open(), [System.Text.Encoding]::UTF8)
         try { [xml]$workbookXml = $reader.ReadToEnd() } finally { $reader.Dispose() }
 
-        $firstSheet = $workbookXml.SelectSingleNode("//*[local-name()='sheets']/*[local-name()='sheet'][1]")
-        if ($null -eq $firstSheet) { throw "Excel 中没有工作表" }
+        # Prefer the input sheet even if reference sheets have been moved to the front.
+        $firstSheet = $workbookXml.SelectSingleNode("//*[local-name()='sheets']/*[local-name()='sheet'][@name='Questions']")
+        if ($null -eq $firstSheet) {
+            foreach ($candidate in $workbookXml.SelectNodes("//*[local-name()='sheets']/*[local-name()='sheet']")) {
+                if ([string]$candidate.name -notin @('示例参考','说明','选项列表')) { $firstSheet = $candidate; break }
+            }
+        }
+        if ($null -eq $firstSheet) { throw "Excel 中没有可导入的题目工作表，请填写 Questions 工作表" }
 
         $relationshipId = ""
         foreach ($attr in @($firstSheet.Attributes)) {
@@ -651,22 +659,29 @@ function Read-XlsxImportRecords {
         $reader = New-Object System.IO.StreamReader($sheetEntry.Open(), [System.Text.Encoding]::UTF8)
         try { [xml]$sheetXml = $reader.ReadToEnd() } finally { $reader.Dispose() }
 
-        $rows = @($sheetXml.SelectNodes("//*[local-name()='sheetData']/*[local-name()='row']"))
+        $rows = $sheetXml.SelectNodes("/*[local-name()='worksheet']/*[local-name()='sheetData']/*[local-name()='row']")
         if ($rows.Count -eq 0) { return @() }
 
         $headers = @{}
-        $records = @()
+        $columnIndices = @{}
+        $digits = [char[]]"0123456789"
+        $records = New-Object System.Collections.ArrayList
         $rowIndex = 0
 
         foreach ($row in $rows) {
             $cellMap = @{}
-            foreach ($cell in @($row.SelectNodes("./*[local-name()='c']"))) {
-                $columnIndex = Get-XlsxColumnIndex ([string]$cell.r)
+            foreach ($cell in $row.ChildNodes) {
+                if ($cell.LocalName -ne 'c') { continue }
+                $columnName = $cell.GetAttribute('r').TrimEnd($digits)
+                if (-not $columnIndices.ContainsKey($columnName)) { $columnIndices[$columnName] = Get-XlsxColumnIndex $columnName }
+                $columnIndex = $columnIndices[$columnName]
                 if ($columnIndex -lt 0) { continue }
-                $cellType = [string]$cell.t
+                $cellType = $cell.GetAttribute('t')
                 $value = ""
                 if ($cellType -eq "inlineStr") {
-                    $value = Get-XlsxNodeText $cell
+                    $textNodes = $cell.GetElementsByTagName('t', $cell.NamespaceURI)
+                    if ($textNodes.Count -eq 1) { $value = $textNodes[0].InnerText }
+                    elseif ($textNodes.Count -gt 1) { $value = Get-XlsxNodeText $cell }
                 }
                 else {
                     $valueNode = $cell.SelectSingleNode("./*[local-name()='v']")
@@ -700,11 +715,11 @@ function Read-XlsxImportRecords {
                     if (-not [string]::IsNullOrWhiteSpace($cellValue)) { $hasValue = $true }
                     $record[$headerName] = $cellValue
                 }
-                if ($hasValue) { $records += [pscustomobject]$record }
+                if ($hasValue) { $record["__sourceRow"] = [int]$row.r; [void]$records.Add([pscustomobject]$record) }
             }
             $rowIndex++
         }
-        return @($records)
+        return $records.ToArray()
     }
     finally {
         $zip.Dispose()
@@ -737,9 +752,8 @@ function Get-ImportField {
     param($Record, [string[]]$Names)
     if ($null -eq $Record) { return "" }
     foreach ($name in $Names) {
-        foreach ($prop in @($Record.PSObject.Properties)) {
-            if ([string]$prop.Name -ieq [string]$name) { return [string]$prop.Value }
-        }
+        $property = $Record.PSObject.Properties[$name]
+        if ($null -ne $property) { return [string]$property.Value }
     }
     return ""
 }
@@ -748,7 +762,9 @@ function Import-QuestionRecords {
     param($Records, $Exam)
 
     $recordsArray = @(As-Array $Records)
-    $errors = @()
+    $errors = New-Object System.Collections.ArrayList
+    $pending = New-Object System.Collections.ArrayList
+    $createdAt = Date-ToString (Get-Date)
     $imported = 0
     $rowNumber = 1
     $maxPosition = 0
@@ -759,30 +775,44 @@ function Import-QuestionRecords {
 
     foreach ($record in $recordsArray) {
         $rowNumber++
+        if ($null -ne $record.PSObject.Properties["__sourceRow"]) { $rowNumber = [int]$record.__sourceRow }
         $typeRaw = (Get-ImportField $record @("题型", "类型", "type")).Trim()
         $text = Get-ImportField $record @("题目正文", "题目", "question", "text")
         $judgementRaw = (Get-ImportField $record @("判断结果", "判断答案", "正确错误", "result")).Trim()
         $errorText = Get-ImportField $record @("错误部分", "错误文字", "errorText", "error")
         $answerText = Get-ImportField $record @("标准答案", "答案", "answerText", "answer")
 
-        if ([string]::IsNullOrWhiteSpace($text)) { $errors += "第 $rowNumber 行：题目正文不能为空"; continue }
+        if ([string]::IsNullOrWhiteSpace($text)) { [void]$errors.Add("第 $rowNumber 行：题目正文不能为空"); continue }
 
         $type = ""
         $typeKey = $typeRaw.ToLowerInvariant()
-        if ($typeRaw -match "判断|纠错" -or $typeKey -eq "correction" -or $typeKey -eq "judge" -or $typeKey -eq "judgement") {
+        if ($typeRaw -in @("判断题", "判断纠错题", "纠错题") -or $typeKey -eq "correction" -or $typeKey -eq "judge" -or $typeKey -eq "judgement") {
             $type = "correction"
         }
-        elseif ($typeRaw -match "主观" -or $typeKey -eq "subjective") { $type = "subjective" }
-        else { $errors += "第 $rowNumber 行：题型必须填写【判断题】或【主观题】"; continue }
+        elseif ($typeRaw -eq "主观题" -or $typeKey -eq "subjective") { $type = "subjective" }
+        elseif ($typeRaw -eq '选择题' -or $typeKey -eq 'choice') {
+            $mode = (Get-ImportField $record @('作答方式','选择类型','choiceMode')).Trim()
+            if ($mode -in @('单选','single')) { $type = 'single' }
+            elseif ($mode -in @('多选','multiple')) { $type = 'multiple' }
+            else { [void]$errors.Add("第 $rowNumber 行：选择题的【作答方式】必须选择【单选】或【多选】"); continue }
+        }
+        else { [void]$errors.Add("第 $rowNumber 行：题型必须选择【判断题】【主观题】或【选择题】"); continue }
 
         $noError = $false
         $errorStart = $null
         $errorEnd = $null
         $finalAnswerText = ""
+        $options = @()
 
         if ($type -eq "subjective") {
             $finalAnswerText = ([string]$answerText).Trim()
-            if ([string]::IsNullOrWhiteSpace($finalAnswerText)) { $errors += "第 $rowNumber 行：主观题必须填写标准答案"; continue }
+            if ([string]::IsNullOrWhiteSpace($finalAnswerText)) { [void]$errors.Add("第 $rowNumber 行：主观题必须填写标准答案"); continue }
+        }
+        elseif ($type -in @('single','multiple')) {
+            $options = @(foreach ($key in @('A','B','C','D')) { (Get-ImportField $record @("选项$key", "option$key")).Trim() })
+            $finalAnswerText = (Get-ImportField $record @('正确选项','correctOptions')).Trim().Replace('，',',').ToUpperInvariant()
+            try { Validate-QuestionExtras @{type=$type; text=$text; options=$options; answerText=$finalAnswerText} }
+            catch { [void]$errors.Add("第 $rowNumber 行：$($_.Exception.Message)"); continue }
         }
         else {
             $judgementKey = $judgementRaw.ToLowerInvariant()
@@ -790,17 +820,17 @@ function Import-QuestionRecords {
             $isWrongLabel = ($judgementRaw -match "^(错误|错|否)$" -or $judgementKey -eq "false" -or $judgementKey -eq "wrong")
 
             if (-not $isCorrectLabel -and -not $isWrongLabel) {
-                $errors += "第 $rowNumber 行：判断题的【判断结果】必须填写【正确】或【错误】"
+                [void]$errors.Add("第 $rowNumber 行：判断题的【判断结果】必须填写【正确】或【错误】")
                 continue
             }
 
             if ($isCorrectLabel) { $noError = $true }
             else {
-                if ([string]::IsNullOrWhiteSpace([string]$errorText)) { $errors += "第 $rowNumber 行：判断结果为【错误】时必须填写【错误部分】"; continue }
+                if ([string]::IsNullOrWhiteSpace([string]$errorText)) { [void]$errors.Add("第 $rowNumber 行：判断结果为【错误】时必须填写【错误部分】"); continue }
                 $errorStart = $text.IndexOf([string]$errorText, [System.StringComparison]::Ordinal)
-                if ($errorStart -lt 0) { $errors += "第 $rowNumber 行：错误部分【$errorText】没有在题目正文中找到"; continue }
+                if ($errorStart -lt 0) { [void]$errors.Add("第 $rowNumber 行：错误部分【$errorText】没有在题目正文中找到"); continue }
                 $secondStart = $text.IndexOf([string]$errorText, $errorStart + ([string]$errorText).Length, [System.StringComparison]::Ordinal)
-                if ($secondStart -ge 0) { $errors += "第 $rowNumber 行：错误部分【$errorText】在题目中出现多次，请调整题目后再导入"; continue }
+                if ($secondStart -ge 0) { [void]$errors.Add("第 $rowNumber 行：错误部分【$errorText】在题目中出现多次，请调整题目后再导入"); continue }
                 $errorEnd = $errorStart + ([string]$errorText).Length
             }
         }
@@ -812,20 +842,25 @@ function Import-QuestionRecords {
             position = $maxPosition
             type = $type
             text = [string]$text
-            answerText = $(if ($type -eq "subjective") { $finalAnswerText } else { "" })
+            answerText = $(if ($type -ne "correction") { $finalAnswerText } else { "" })
             errorStart = $errorStart
             errorEnd = $errorEnd
             noError = $(if ($type -eq "correction") { [bool]$noError } else { $false })
             enabled = $true
-            createdAt = (Date-ToString (Get-Date))
+            createdAt = $createdAt
+            options = $options
+            media = @()
         }
-        $Exam.questions = @(As-Array $Exam.questions) + @($question)
+        [void]$pending.Add($question)
         $imported++
     }
 
-    if ($imported -gt 0) { Save-Data }
+    if ($imported -gt 0) {
+        $Exam.questions = @($Exam.questions) + $pending.ToArray()
+        Save-Data
+    }
 
-    return [ordered]@{ importedCount = $imported; totalRows = @($recordsArray).Count; errors = @($errors) }
+    return [ordered]@{ importedCount = $imported; totalRows = @($recordsArray).Count; errors = $errors.ToArray() }
 }
 
 function Get-QuestionStats {
@@ -1036,6 +1071,15 @@ function New-WorksheetXml {
     return $sb.ToString()
 }
 
+function Get-QuestionExportText {
+    param($Question)
+    $lines = @([string]$Question.text)
+    $options = @(As-Array $Question.options)
+    for ($i = 0; $i -lt $options.Count; $i++) { $lines += ([string][char](65 + $i)) + '. ' + [string]$options[$i] }
+    foreach ($m in (As-Array $Question.media)) { $lines += '[图片/附件] ' + [string]$m.name }
+    return ($lines -join "`n")
+}
+
 function Build-XlsxBytes {
     param($Exam)
 
@@ -1147,7 +1191,7 @@ function Build-XlsxBytes {
 
             if ($null -ne $a) {
                 $answeredAt = $a.answeredAt
-                if ($q.type -eq "subjective") {
+                if ($q.type -ne "correction") {
                     $userAnswer = [string]$a.userAnswer
                 }
                 elseif ([string]$a.userAnswer -eq "本题无错误") {
@@ -1165,9 +1209,9 @@ function Build-XlsxBytes {
                 $result = $(if ([bool]$a.isCorrect) { "正确" } else { "错误" })
             }
 
-            if ($q.type -eq "subjective") {
+            if ($q.type -ne "correction") {
                 $standard = [string]$q.answerText
-                $typeName = "主观题"
+                $typeName = $(switch ($q.type) { single { "单选题" } multiple { "多选题" } default { "主观题" } })
             }
             else {
                 $typeName = "判断纠错题"
@@ -1184,7 +1228,7 @@ function Build-XlsxBytes {
                 [int]$q.position,
                 $i + 1,
                 $typeName,
-                $q.text,
+                (Get-QuestionExportText $q),
                 $userAnswer,
                 $standard,
                 $result,
@@ -1196,7 +1240,7 @@ function Build-XlsxBytes {
     $questionAnalysisRows = @()
     $questionAnalysisRows += ,@("题号", "题型", "题目", "正确人数", "错误人数", "未作答人数", "正确率(%)")
     foreach ($stat in (Get-QuestionStats $Exam)) {
-        $typeName = $(if ([string]$stat.type -eq "subjective") { "主观题" } else { "判断纠错题" })
+        $typeName = $(switch ($stat.type) { single { "单选题" } multiple { "多选题" } subjective { "主观题" } default { "判断纠错题" } })
         $questionAnalysisRows += ,@(
             [int]$stat.position,
             $typeName,
@@ -1346,6 +1390,7 @@ function Read-HttpRequest {
         [void][int]::TryParse($lengthHeader, [ref]$contentLength)
     }
 
+    if ($contentLength -lt 0 -or $contentLength -gt 16MB) { throw "请求体过大" }
     $bodyBytes = New-Object byte[] $contentLength
     $read = 0
     while ($read -lt $contentLength) {
@@ -1457,6 +1502,69 @@ function Require-Draft {
     return $true
 }
 
+function Validate-QuestionExtras {
+    param($Body)
+    if ([string]$Body.type -notin @('correction','subjective','single','multiple')) { throw '题型无效' }
+    $media = @(As-Array $Body.media)
+    if ($media.Count -gt 6) { throw '每题最多上传 6 个文件' }
+    $total = 0
+    foreach ($m in $media) {
+        if ([string]$Body.type -eq 'correction') { throw '判断题不支持上传文件' }
+        if ([string]::IsNullOrWhiteSpace([string]$m.name) -or ([string]$m.name).Length -gt 200) { throw '文件名无效' }
+        if ([string]$m.data -match '^/media/([a-f0-9]{32}\.(png|jpg|gif|webp|bin))$') {
+            $file = Join-Path $MediaDir $Matches[1]
+            if (-not (Test-Path -LiteralPath $file)) { throw '题目文件不存在，请重新上传' }
+            $total += (Get-Item -LiteralPath $file).Length
+            if ($total -gt 6MB) { throw '每题文件合计最多 6MB' }
+            continue
+        }
+        if ([string]$m.data -notmatch '^data:(image/png|image/jpeg|image/gif|image/webp|application/octet-stream);base64,([A-Za-z0-9+/=]+)$') { throw '文件格式无效' }
+        $mime = $Matches[1]
+        $bytes = [Convert]::FromBase64String($Matches[2])
+        $total += $bytes.Length
+        if ($bytes.Length -gt 3MB -or $total -gt 6MB) { throw '单个文件最多 3MB，每题合计最多 6MB' }
+        if ($mime -eq 'application/octet-stream' -and [IO.Path]::GetExtension([string]$m.name).ToLowerInvariant() -notin @('.pdf','.doc','.docx','.xls','.xlsx','.txt','.csv','.zip')) { throw '不支持的附件格式' }
+    }
+    if ([string]::IsNullOrWhiteSpace([string]$Body.text) -and @($media | Where-Object { [string]$_.data -match '^(data:image/|/media/[a-f0-9]{32}\.(png|jpg|gif|webp)$)' }).Count -eq 0) { throw '请填写题目正文或上传题目图片' }
+    if ([string]$Body.type -in @('single','multiple')) {
+        $options = @(As-Array $Body.options)
+        if ($options.Count -ne 4) { throw '选择题必须填写 A、B、C、D 四个选项' }
+        foreach ($option in $options) { if ([string]::IsNullOrWhiteSpace([string]$option)) { throw '选项不能为空' } }
+        $keys = ([string]$Body.answerText).Split(',')
+        if (($keys | Select-Object -Unique).Count -ne $keys.Count) { throw '答案不能重复' }
+        foreach ($key in $keys) { if ($key -notmatch '^[A-D]$' -or ([int][char]$key - 65) -ge $options.Count) { throw '正确答案无效' } }
+        if ([string]$Body.type -eq 'single' -and $keys.Count -ne 1) { throw '单选题只能设置一个正确答案' }
+        if ([string]$Body.type -eq 'multiple' -and $keys.Count -lt 2) { throw '多选题至少设置两个正确答案' }
+    }
+}
+
+function Set-QuestionExtras {
+    param($Question,$Body)
+    foreach ($name in @('options','media')) {
+        $value = @(As-Array $Body.$name)
+        if ($name -eq 'options' -and [string]$Body.type -notin @('single','multiple')) { $value = @() }
+        if ($name -eq 'media') {
+            $stored = @()
+            foreach ($m in $value) {
+                $url = [string]$m.data
+                if ($url -match '^data:([^;]+);base64,(.+)$') {
+                    $mime = $Matches[1]
+                    $bytes = [Convert]::FromBase64String($Matches[2])
+                    $ext = switch ($mime) { 'image/png' { 'png' } 'image/jpeg' { 'jpg' } 'image/gif' { 'gif' } 'image/webp' { 'webp' } default { 'bin' } }
+                    $fileName = [Guid]::NewGuid().ToString('N') + '.' + $ext
+                    [IO.File]::WriteAllBytes((Join-Path $MediaDir $fileName), $bytes)
+                    $url = '/media/' + $fileName
+                }
+                $size = (Get-Item -LiteralPath (Join-Path $MediaDir ($url.Substring(7)))).Length
+                $stored += [ordered]@{ name = [string]$m.name; data = $url; size = $size }
+            }
+            $value = $stored
+        }
+        if ($Question -is [System.Collections.IDictionary]) { $Question[$name] = $value }
+        else { $Question | Add-Member -NotePropertyName $name -NotePropertyValue $value -Force }
+    }
+}
+
 function Handle-Request {
     param(
         $Request,
@@ -1468,6 +1576,18 @@ function Handle-Request {
     $path = $Request.path
     $body = Parse-JsonBody $Request.body
     $exam = Current-Exam
+
+    # Random file URLs act as download capabilities; only administrators can create references.
+    if ($method -eq 'GET' -and $path -match '^/media/([a-f0-9]{32}\.(png|jpg|gif|webp|bin))$') {
+        $file = Join-Path $MediaDir $Matches[1]
+        $ext = $Matches[2]
+        if (-not (Test-Path -LiteralPath $file)) { Write-Json $Stream 404 @{ ok = $false; message = '文件不存在' }; return }
+        $mime = switch ($ext) { png { 'image/png' } jpg { 'image/jpeg' } gif { 'image/gif' } webp { 'image/webp' } default { 'application/octet-stream' } }
+        $headers = @{ 'X-Content-Type-Options' = 'nosniff'; 'Cache-Control' = 'private, max-age=3600' }
+        if ($ext -eq 'bin') { $headers['Content-Disposition'] = 'attachment' }
+        Write-Response $Stream 200 $mime ([IO.File]::ReadAllBytes($file)) $headers
+        return
+    }
 
     if ($method -eq "GET" -and $path -eq "/") {
         Serve-File $Stream (Join-Path $WebDir "user.html")
@@ -1662,13 +1782,14 @@ function Handle-Request {
         try { $bytes = [Convert]::FromBase64String($base64) }
         catch { Write-Json $Stream 400 @{ ok = $false; message = "文件内容无效" }; return }
 
+        if ($bytes.Length -gt 10MB) { Write-Json $Stream 400 @{ ok = $false; message = "导入文件请不要超过 10MB" }; return }
         try {
             $extension = [System.IO.Path]::GetExtension($fileName).ToLowerInvariant()
             if ($extension -eq ".xlsx") { $records = @(Read-XlsxImportRecords $bytes) }
             elseif ($extension -eq ".csv") { $records = @(Read-CsvImportRecords $bytes) }
             else { Write-Json $Stream 400 @{ ok = $false; message = "仅支持 .xlsx 或 .csv 文件" }; return }
 
-            if (@($records).Count -eq 0) { Write-Json $Stream 400 @{ ok = $false; message = "文件中没有可导入的题目数据" }; return }
+            if (@($records).Count -eq 0) { Write-Json $Stream 400 @{ ok = $false; message = "文件中没有可导入的正式题目，请填写题目后再导入（示例参考不参与导入）" }; return }
 
             $result = Import-QuestionRecords $records $exam
             Write-Json $Stream 200 @{ ok = $true; importedCount = $result.importedCount; totalRows = $result.totalRows; errors = @($result.errors) }
@@ -1688,14 +1809,11 @@ function Handle-Request {
 
         $type = [string]$body.type
         $text = [string]$body.text
-        if ($type -ne "correction" -and $type -ne "subjective") {
+        if ($type -notin @('correction','subjective','single','multiple')) {
             Write-Json $Stream 400 @{ ok = $false; message = "题型无效" }
             return
         }
-        if ([string]::IsNullOrWhiteSpace($text)) {
-            Write-Json $Stream 400 @{ ok = $false; message = "题目不能为空" }
-            return
-        }
+        try { Validate-QuestionExtras $body } catch { Write-Json $Stream 400 @{ ok = $false; message = $_.Exception.Message }; return }
 
         $answerText = ([string]$body.answerText).Trim()
         $noError = [bool]$body.noError
@@ -1731,7 +1849,7 @@ function Handle-Request {
             position = $maxPosition + 1
             type = $type
             text = $text
-            answerText = $(if ($type -eq "subjective") { $answerText } else { "" })
+            answerText = $(if ($type -ne "correction") { $answerText } else { "" })
             errorStart = $errorStart
             errorEnd = $errorEnd
             noError = $(if ($type -eq "correction") { $noError } else { $false })
@@ -1739,6 +1857,7 @@ function Handle-Request {
             createdAt = (Date-ToString (Get-Date))
         }
 
+        Set-QuestionExtras $q $body
         $exam.questions = @(As-Array $exam.questions) + @($q)
         Save-Data
         Write-Json $Stream 201 @{ ok = $true; id = $q.id }
@@ -1770,10 +1889,7 @@ function Handle-Request {
             $errorStart = $null
             $errorEnd = $null
 
-            if ([string]::IsNullOrWhiteSpace($text)) {
-                Write-Json $Stream 400 @{ ok = $false; message = "题目不能为空" }
-                return
-            }
+            try { Validate-QuestionExtras $body } catch { Write-Json $Stream 400 @{ ok = $false; message = $_.Exception.Message }; return }
             if ($type -eq "subjective" -and [string]::IsNullOrWhiteSpace($answerText)) {
                 Write-Json $Stream 400 @{ ok = $false; message = "主观题标准答案不能为空" }
                 return
@@ -1793,11 +1909,12 @@ function Handle-Request {
 
             $q.type = $type
             $q.text = $text
-            $q.answerText = $(if ($type -eq "subjective") { $answerText } else { "" })
+            $q.answerText = $(if ($type -ne "correction") { $answerText } else { "" })
             $q.errorStart = $errorStart
             $q.errorEnd = $errorEnd
             $q.noError = $(if ($type -eq "correction") { $noError } else { $false })
             $q.enabled = $true
+            Set-QuestionExtras $q $body
 
             Save-Data
             Write-Json $Stream 200 @{ ok = $true }
@@ -1912,6 +2029,8 @@ function Handle-Request {
                     memberOrder = $orderMap[[string]$q.id]
                     type = $q.type
                     text = $q.text
+                    options = @(As-Array $q.options)
+                    media = @(As-Array $q.media)
                     answerText = $q.answerText
                     noError = $q.noError
                     correctText = $correctText
@@ -2205,7 +2324,8 @@ function Handle-Request {
 
         # Keep question types grouped for every member:
         # 1) correction/judgement questions first
-        # 2) subjective questions second
+        # 2) choice questions
+        # 3) subjective questions
         # When randomization is enabled, shuffle only inside each type group.
         $orderedQuestions = @(As-Array $exam.activeQuestions | Sort-Object { [int]$_.position })
 
@@ -2226,7 +2346,9 @@ function Handle-Request {
             $subjectiveIds = @(Shuffle-Ids $subjectiveIds)
         }
 
-        $ids = @($correctionIds) + @($subjectiveIds)
+        $choiceIds = @($orderedQuestions | Where-Object { $_.type -in @('single','multiple') } | ForEach-Object { [int]$_.id })
+        if ([bool]$exam.randomizeQuestions) { $choiceIds = @(Shuffle-Ids $choiceIds) }
+        $ids = @($correctionIds) + @($choiceIds) + @($subjectiveIds)
 
         $script:Data.counters.participant = [int]$script:Data.counters.participant + 1
         $started = Get-Date
@@ -2350,7 +2472,17 @@ function Handle-Request {
         $isCorrect = $false
         $userAnswer = ""
 
-        if ($q.type -eq "subjective") {
+        if ($q.type -in @('single','multiple')) {
+            $keys = @(([string]$body.answer).Split(','))
+            $valid = $true
+            foreach ($key in $keys) { if ($key -notmatch '^[A-H]$' -or ([int][char]$key - 65) -ge @(As-Array $q.options).Count) { $valid = $false } }
+            if (-not $valid -or ($keys | Select-Object -Unique).Count -ne $keys.Count -or ($q.type -eq 'single' -and $keys.Count -ne 1)) {
+                Write-Json $Stream 400 @{ ok = $false; message = '请选择有效的选项，单选题只能选择一项' }; return
+            }
+            $userAnswer = ($keys | Sort-Object) -join ','
+            $isCorrect = $userAnswer -ceq ((([string]$q.answerText).Split(',') | Sort-Object) -join ',')
+        }
+        elseif ($q.type -eq "subjective") {
             $userAnswer = [string]$body.answer
             $isCorrect = (Normalize-Subjective $userAnswer) -ceq (Normalize-Subjective ([string]$q.answerText))
         }

@@ -95,8 +95,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
   <section id="tab-questions" class="hidden">
     <div class="card">
       <div class="toolbar" style="justify-content:space-between"><div><h2>题目</h2><div id="questionHint" class="muted">当前考试里的题目都会自动进入本场考试，无需额外勾选。</div></div><div class="toolbar"><button id="templateBtn" class="btn" onclick="downloadImportTemplate()">下载导入模板</button><button id="importQuestionBtn" class="btn" onclick="questionImportFile.click()">批量导入 Excel/CSV</button><button id="addQuestionBtn" class="btn primary" onclick="newQuestion()">＋ 新增题目</button><input id="questionImportFile" class="hidden" type="file" accept=".xlsx,.csv" onchange="importQuestionFile(this)"></div></div>
-      <div class="import-help"><b>批量导入格式：</b>题型、题目正文、判断结果、错误部分、标准答案。判断题填写“正确/错误”；错误题填写题目中需要点击的错误原文；主观题填写标准答案。</div>
-      <div id="questionList"></div>
+      <div class="import-help"><b>推荐使用新版 Excel 下拉模板：</b>题型、判断结果、单选/多选、正确选项可下拉选择。判断题填写错误原文，主观题填写标准答案；选择题填写 A–D 四个选项。在 Questions 工作表填写题目；“示例参考”无需删除，也不会导入。图片附件可在导入后添加。CSV 不支持下拉，但会执行相同的导入校验。</div>
+      <div id="importStatus" class="notice hidden" role="status" aria-live="polite"></div><div id="questionList"></div><div id="questionPager" class="toolbar" style="justify-content:center;margin-top:16px"></div>
     </div>
   </section>
 
@@ -119,11 +119,19 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 
 <div id="questionModal" class="modal hidden"><div class="modalbox">
   <div class="toolbar" style="justify-content:space-between"><h2 id="qTitle">新增题目</h2><button class="btn" onclick="closeQuestion()">关闭</button></div><input id="qId" type="hidden">
-  <div class="field" style="margin-top:14px;max-width:320px"><label>题型</label><select id="qType" onchange="switchQType()"><option value="correction">判断纠错题</option><option value="subjective">主观题</option></select></div>
+  <div class="field" style="margin-top:14px;max-width:320px"><label>题型</label><select id="qType" onchange="switchQType()"><option value="correction">判断纠错题</option><option value="subjective">主观题</option><option value="choice">选择题</option></select></div>
   <div class="stepbox"><div><span class="stepnum">1</span><b>填写题目</b></div><textarea id="qText" style="margin-top:10px" placeholder="请输入题目正文" oninput="questionTextChanged()"></textarea></div>
   <div id="correctionBox" class="stepbox"><div><span class="stepnum">2</span><b>设置答案</b></div><div class="choice-grid" style="margin-top:10px"><div id="truthCorrect" class="choice good" onclick="setJudgement('correct')"><b>✓ 本题正确</b><small>题目内容没有错误，选择后无需再设置。</small></div><div id="truthWrong" class="choice bad" onclick="setJudgement('wrong')"><b>✕ 本题有错误</b><small>选择后，再把题目中具体错误的位置标出来。</small></div></div>
     <div id="wrongStep" class="hidden" style="margin-top:12px"><div class="notice">先在上面的“题目正文”输入框中用鼠标拖选错误文字，再点击“确认错误位置”。</div><div class="toolbar" style="margin-top:10px"><button class="btn" onclick="captureSelection()">确认错误位置</button><button class="btn hidden" id="reselectBtn" onclick="focusForReselect()">重新选择</button><span id="rangeText" class="muted"></span></div><div class="preview" id="previewBox">设置后，这里会高亮显示错误部分。</div></div>
   </div>
+  <div id="choiceBox" class="stepbox hidden">
+    <b>设置选项和正确答案</b>
+    <div class="field"><label for="qChoiceMode">作答方式</label><select id="qChoiceMode" onchange="switchChoiceMode()"><option value="single">单选</option><option value="multiple">多选</option></select></div>
+    <div class="muted" style="margin-top:10px">请填写 A、B、C、D 四个选项，并在正确选项前选择。图片已包含选项时，可填写 A、B、C、D。</div>
+    <div id="legacyChoiceNotice" class="notice hidden">此题原有超过四个选项。编辑后仅保留前四项，请检查题目内容并重新设置正确答案。</div>
+    <div id="correctOptions"></div><div id="choiceAnswerHint" class="notice"></div>
+  </div>
+  <div id="mediaBox" class="stepbox hidden"><b>题目图片和附件</b><div class="muted">支持仅上传图片作为题目。最多 6 个文件，单文件 3MB，合计 6MB。</div><input id="qFiles" type="file" multiple accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip" onchange="addQuestionFiles(this)"><div id="mediaPreview"></div></div>
   <div id="subjectiveBox" class="stepbox hidden"><div><span class="stepnum">2</span><b>设置标准答案</b></div><div class="field" style="margin-top:10px"><textarea id="qAnswer" placeholder="请输入标准答案"></textarea></div><div class="notice">判题时自动忽略标点、空格、换行和英文大小写；剩余正文必须完全一致。</div></div>
   <div class="toolbar" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" onclick="saveQuestion()">保存题目</button></div>
 </div></div>
@@ -131,7 +139,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:10px;border-bottom:1px s
 <div id="detailModal" class="modal hidden"><div class="modalbox"><div class="toolbar" style="justify-content:space-between"><h2 id="detailTitle">详情</h2><button class="btn" onclick="detailModal.classList.add('hidden')">关闭</button></div><div id="detailContent" style="margin-top:14px"></div></div></div>
 
 <script>
-let token=sessionStorage.getItem('adminToken')||'',exam=null,summary=null,questions=[],historyItems=[],questionStats=[],errorStart=null,errorEnd=null,judgement='correct',poll=null,scoreMode='accuracy';
+let token=sessionStorage.getItem('adminToken')||'',exam=null,summary=null,questions=[],historyItems=[],questionStats=[],errorStart=null,errorEnd=null,judgement='correct',poll=null,scoreMode='accuracy',questionPage=0,importingQuestions=false;
 const $=id=>document.getElementById(id);const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fmt=n=>{n=Math.max(0,+n||0);let h=Math.floor(n/3600),m=Math.floor(n%3600/60),s=Math.floor(n%60);return(h?h+':':'')+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')};
 const rate=v=>(Number(v||0)).toFixed(1)+'%';
@@ -144,7 +152,7 @@ function showTab(name,btn){document.querySelectorAll('[id^="tab-"]').forEach(x=>
 function statusLabel(s){return s==='draft'?'未开始':s==='running'?'进行中':'已结束'}
 function setScoreMode(mode){scoreMode=mode==='score'?'score':'accuracy';document.querySelectorAll('input[name="scoreMode"]').forEach(x=>x.checked=x.value===scoreMode);modeAccuracyCard.classList.toggle('active',scoreMode==='accuracy');modeScoreCard.classList.toggle('active',scoreMode==='score');passScoreBox.classList.toggle('hidden',scoreMode!=='score')}
 async function loadExam(){let j=await api('/api/admin/exam');exam=j.exam;summary=j.summary;renderExam()}
-function renderExam(){examId.textContent='考试 ID：'+exam.id;examName.value=exam.name;examCode.value=exam.accessCode;examDuration.value=exam.durationMinutes;examPass.value=exam.passScore??80;examRandom.checked=!!exam.randomizeQuestions;setScoreMode(exam.scoringMode||'score');let draft=exam.status==='draft',running=exam.status==='running',ended=exam.status==='ended';examStatus.textContent=statusLabel(exam.status);examStatus.className='status '+exam.status;[examName,examCode,examDuration,newAdminPass,examRandom].forEach(x=>x.disabled=!draft);document.querySelectorAll('input[name="scoreMode"]').forEach(x=>x.disabled=!draft);examPass.disabled=!draft;saveExamBtn.classList.toggle('hidden',!draft);startExamBtn.classList.toggle('hidden',!draft);endExamBtn.classList.toggle('hidden',!running);newExamBtn.classList.toggle('hidden',!ended);examTimes.classList.toggle('hidden',draft);if(!draft)examTimes.textContent=`开始：${exam.startedAt||'-'}${ended?'　结束：'+(exam.endedAt||'-'):''}`;examSummary.classList.toggle('hidden',draft);if(!draft){let avg=summary?.averageAccuracy??0,items=[['参加人数',summary?.participantCount??0],['题目数量',summary?.questionCount??0],['平均正确率',rate(avg)]];if((exam.scoringMode||'score')==='score')items.push(['通过人数',summary?.passedCount??0]);else items.push(['统计方式','正确率']);examSummary.innerHTML=items.map(x=>`<div class="kpi"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('')}examHelp.textContent=draft?'先设置考试信息并添加题目，确认无误后点击“开始考试”。开始后本场题目会被冻结。':running?'考试进行中。点击“结束考试”会让仍在作答的成员立即交卷，并自动归档本场结果。':'本场考试已归档，可以在“历史考试”中长期查看或导出 Excel。';addQuestionBtn.disabled=!draft;importQuestionBtn.disabled=!draft;templateBtn.disabled=!draft;questionHint.textContent=draft?'当前考试里的所有题目都会自动进入本场考试，无需额外勾选。':'考试已开始，题目已冻结，当前不可修改。'}
+function renderExam(){examId.textContent='考试 ID：'+exam.id;examName.value=exam.name;examCode.value=exam.accessCode;examDuration.value=exam.durationMinutes;examPass.value=exam.passScore??80;examRandom.checked=!!exam.randomizeQuestions;setScoreMode(exam.scoringMode||'score');let draft=exam.status==='draft',running=exam.status==='running',ended=exam.status==='ended';examStatus.textContent=statusLabel(exam.status);examStatus.className='status '+exam.status;[examName,examCode,examDuration,newAdminPass,examRandom].forEach(x=>x.disabled=!draft);document.querySelectorAll('input[name="scoreMode"]').forEach(x=>x.disabled=!draft);examPass.disabled=!draft;saveExamBtn.classList.toggle('hidden',!draft);startExamBtn.classList.toggle('hidden',!draft);endExamBtn.classList.toggle('hidden',!running);newExamBtn.classList.toggle('hidden',!ended);examTimes.classList.toggle('hidden',draft);if(!draft)examTimes.textContent=`开始：${exam.startedAt||'-'}${ended?'　结束：'+(exam.endedAt||'-'):''}`;examSummary.classList.toggle('hidden',draft);if(!draft){let avg=summary?.averageAccuracy??0,items=[['参加人数',summary?.participantCount??0],['题目数量',summary?.questionCount??0],['平均正确率',rate(avg)]];if((exam.scoringMode||'score')==='score')items.push(['通过人数',summary?.passedCount??0]);else items.push(['统计方式','正确率']);examSummary.innerHTML=items.map(x=>`<div class="kpi"><span class="muted">${x[0]}</span><b>${x[1]}</b></div>`).join('')}examHelp.textContent=draft?'先设置考试信息并添加题目，确认无误后点击“开始考试”。开始后本场题目会被冻结。':running?'考试进行中。点击“结束考试”会让仍在作答的成员立即交卷，并自动归档本场结果。':'本场考试已归档，可以在“历史考试”中长期查看或导出 Excel。';addQuestionBtn.disabled=!draft;importQuestionBtn.disabled=!draft||importingQuestions;templateBtn.disabled=!draft;questionHint.textContent=draft?'当前考试里的所有题目都会自动进入本场考试，无需额外勾选。':'考试已开始，题目已冻结，当前不可修改。'}
 function currentExamSettingsPayload(){return {name:examName.value,accessCode:examCode.value,durationMinutes:+examDuration.value,scoringMode:scoreMode,passScore:scoreMode==='score'?(+examPass.value||80):80,randomizeQuestions:examRandom.checked,adminPassword:newAdminPass.value}}
 async function saveExam(){try{await api('/api/admin/exam',{method:'PUT',body:JSON.stringify(currentExamSettingsPayload())});newAdminPass.value='';await loadExam();alert('考试设置已保存')}catch(e){alert(e.message)}}
 async function startExam(){if(!questions.length){alert('请先添加至少一道题目');return}if(!confirm(`确认开始“${examName.value}”吗？\n\n系统会先自动保存当前考试设置，然后冻结 ${questions.length} 道题。`))return;try{await api('/api/admin/exam',{method:'PUT',body:JSON.stringify(currentExamSettingsPayload())});newAdminPass.value='';await api('/api/admin/exam/start',{method:'POST',body:'{}'});await Promise.all([loadExam(),loadQuestions(),loadParticipants()])}catch(e){alert(e.message)}}
@@ -153,7 +161,8 @@ async function newExam(){if(!confirm('创建下一场考试？上一场考试的
 
 async function loadQuestions(){let j=await api('/api/admin/questions');questions=j.questions||[];renderQuestions()}
 function markedQuestion(q){if(q.type!=='correction'||q.noError||q.errorStart==null)return esc(q.text);return esc(q.text.slice(0,q.errorStart))+`<span class="error-mark">${esc(q.text.slice(q.errorStart,q.errorEnd))}</span>`+esc(q.text.slice(q.errorEnd))}
-function renderQuestions(){questionList.innerHTML=questions.length?'':'<div class="notice">暂无题目，点击右上角“＋ 新增题目”开始出题。</div>';questions.forEach((q,i)=>{let d=document.createElement('div');d.className='q';let badge=q.type==='subjective'?'<span class="badge">主观题</span>':q.noError?'<span class="badge good">判断题 · 正确</span>':'<span class="badge bad">判断题 · 有错误</span>';let answer=q.type==='subjective'?`标准答案：${esc(q.answerText||'')}`:(q.noError?'答案：本题正确':`错误部分：${esc(q.text.slice(q.errorStart,q.errorEnd))}`);d.innerHTML=`<div class="qhead"><div><b>第 ${i+1} 题</b> ${badge}</div><div class="toolbar"><button class="btn small" onclick="moveQuestion(${q.id},'up')">↑</button><button class="btn small" onclick="moveQuestion(${q.id},'down')">↓</button><button class="btn small" onclick="editQuestion(${q.id})">编辑</button><button class="btn small danger" onclick="deleteQuestion(${q.id})">删除</button></div></div><div class="qtext">${markedQuestion(q)}</div><div class="answer-note">${answer}</div>`;questionList.appendChild(d)})}
+function changeQuestionPage(delta){questionPage+=delta;renderQuestions()}
+function renderQuestions(){let pages=Math.max(1,Math.ceil(questions.length/50));questionPage=Math.max(0,Math.min(questionPage,pages-1));questionPager.innerHTML=questions.length?`<button class="btn" onclick="changeQuestionPage(-1)" ${questionPage===0?'disabled':''}>上一页</button><span>共 ${questions.length} 题 · 第 ${questionPage+1} / ${pages} 页</span><button class="btn" onclick="changeQuestionPage(1)" ${questionPage===pages-1?'disabled':''}>下一页</button>`:'';questionList.innerHTML=questions.length?'':'<div class="notice">暂无题目，点击右上角“＋ 新增题目”开始出题。</div>';questions.slice(questionPage*50,(questionPage+1)*50).forEach((q,index)=>{let i=questionPage*50+index,d=document.createElement('div');d.className='q';let badge=['single','multiple'].includes(q.type)?`<span class="badge">${typeLabel(q.type)}</span>`:q.type==='subjective'?'<span class="badge">主观题</span>':q.noError?'<span class="badge good">判断题 · 正确</span>':'<span class="badge bad">判断题 · 有错误</span>';let answer=q.type!=='correction'?`标准答案：${esc(q.answerText||'')}`:(q.noError?'答案：本题正确':`错误部分：${esc(q.text.slice(q.errorStart,q.errorEnd))}`);d.innerHTML=`<div class="qhead"><div><b>第 ${i+1} 题</b> ${badge}</div><div class="toolbar"><button class="btn small" onclick="moveQuestion(${q.id},'up')">↑</button><button class="btn small" onclick="moveQuestion(${q.id},'down')">↓</button><button class="btn small" onclick="editQuestion(${q.id})">编辑</button><button class="btn small danger" onclick="deleteQuestion(${q.id})">删除</button></div></div><div class="qtext">${markedQuestion(q)}${optionsHtml(q)}${mediaHtml(q)}</div><div class="answer-note">${answer}</div>`;questionList.appendChild(d)})}
 
 async function downloadImportTemplate(){
   try{
@@ -163,34 +172,38 @@ async function downloadImportTemplate(){
     a.href=url;a.download='question_import_template.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)
   }catch(e){alert(e.message)}
 }
-function arrayBufferToBase64(buffer){
-  let bytes=new Uint8Array(buffer),parts=[],size=0x8000;
-  for(let i=0;i<bytes.length;i+=size)parts.push(String.fromCharCode.apply(null,bytes.subarray(i,Math.min(i+size,bytes.length))));
-  return btoa(parts.join(''))
-}
+function readImportBase64(file){return new Promise((resolve,reject)=>{let reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.onerror=()=>reject(Error('读取文件失败'));reader.readAsDataURL(file)})}
 async function importQuestionFile(input){
-  let file=input.files&&input.files[0];input.value='';if(!file)return;
+  let file=input.files&&input.files[0];input.value='';if(!file||importingQuestions)return;
   if(exam?.status!=='draft'){alert('只有未开始的考试可以导入题目');return}
   let ext=(file.name.split('.').pop()||'').toLowerCase();
   if(!['xlsx','csv'].includes(ext)){alert('仅支持 .xlsx 或 .csv 文件');return}
   if(file.size>10*1024*1024){alert('导入文件请不要超过 10MB');return}
+  importingQuestions=true;importQuestionBtn.disabled=true;importQuestionBtn.textContent='正在导入…';importStatus.classList.remove('hidden');importStatus.textContent='正在读取文件…';
   try{
-    let j=await api('/api/admin/questions/import',{method:'POST',body:JSON.stringify({fileName:file.name,dataBase64:arrayBufferToBase64(await file.arrayBuffer())})});
-    let msg=`成功导入 ${j.importedCount} 道题。`;
+    let dataBase64=await readImportBase64(file);
+    importStatus.textContent='正在上传、校验并导入题目，请稍候…';
+    let j=await api('/api/admin/questions/import',{method:'POST',body:JSON.stringify({fileName:file.name,dataBase64})});
+    importStatus.textContent='导入完成，正在更新题目列表…';
+    questionPage=0;await loadQuestions();
+    let msg=`成功导入 ${j.importedCount} 道题，共读取 ${j.totalRows} 行。`;
     if((j.errors||[]).length){msg+=`\n\n以下行未导入：\n`+j.errors.slice(0,20).join('\n');if(j.errors.length>20)msg+=`\n……另有 ${j.errors.length-20} 条`}
-    alert(msg);await loadQuestions()
-  }catch(e){alert(e.message)}
+    importStatus.textContent=`成功导入 ${j.importedCount} 道题，${(j.errors||[]).length} 行未通过校验。`;
+    alert(msg);
+  }catch(e){importStatus.textContent='导入失败：'+e.message;alert(e.message)}
+  finally{importingQuestions=false;importQuestionBtn.disabled=exam?.status!=='draft';importQuestionBtn.textContent='批量导入 Excel/CSV'}
 }
-function newQuestion(){if(exam.status!=='draft')return;qId.value='';qTitle.textContent='新增题目';qType.value='correction';qText.value='';qAnswer.value='';errorStart=errorEnd=null;judgement='correct';switchQType();setJudgement('correct');updatePreview();questionModal.classList.remove('hidden')}
-function editQuestion(id){if(exam.status!=='draft')return;let q=questions.find(x=>+x.id===+id);if(!q)return;qId.value=q.id;qTitle.textContent='编辑题目';qType.value=q.type;qText.value=q.text;qAnswer.value=q.answerText||'';errorStart=q.errorStart;errorEnd=q.errorEnd;judgement=q.noError?'correct':'wrong';switchQType();if(q.type==='correction')setJudgement(judgement,false);updatePreview();questionModal.classList.remove('hidden')}
+function newQuestion(){if(exam.status!=='draft')return;qId.value='';qTitle.textContent='新增题目';qType.value='correction';questionMedia=[];choiceOptions=['','','',''];qChoiceMode.value='single';legacyChoiceNotice.classList.add('hidden');selectedKeys=[];qFiles.value='';renderMediaPreview();qText.value='';qAnswer.value='';errorStart=errorEnd=null;judgement='correct';switchQType();setJudgement('correct');updatePreview();questionModal.classList.remove('hidden')}
+function editQuestion(id){if(exam.status!=='draft')return;let q=questions.find(x=>+x.id===+id);if(!q)return;qId.value=q.id;qTitle.textContent='编辑题目';qType.value=['single','multiple'].includes(q.type)?'choice':q.type;qChoiceMode.value=q.type==='multiple'?'multiple':'single';questionMedia=(q.media||[]).slice();choiceOptions=Array.from({length:4},(_,i)=>(q.options||[])[i]||'');let legacy=(q.options||[]).length>4;legacyChoiceNotice.classList.toggle('hidden',!legacy);selectedKeys=legacy?[]:(q.answerText||'').split(',').filter(k=>/^[A-D]$/.test(k));qFiles.value='';renderMediaPreview();qText.value=q.text;qAnswer.value=q.answerText||'';errorStart=q.errorStart;errorEnd=q.errorEnd;judgement=q.noError?'correct':'wrong';switchQType();if(q.type==='correction')setJudgement(judgement,false);updatePreview();questionModal.classList.remove('hidden')}
 function closeQuestion(){questionModal.classList.add('hidden')}
-function switchQType(){let subjective=qType.value==='subjective';correctionBox.classList.toggle('hidden',subjective);subjectiveBox.classList.toggle('hidden',!subjective);if(!subjective)setJudgement(judgement||'correct',false)}
+function switchQType(){let t=qType.value;correctionBox.classList.toggle('hidden',t!=='correction');subjectiveBox.classList.toggle('hidden',t!=='subjective');choiceBox.classList.toggle('hidden',t!=='choice');mediaBox.classList.toggle('hidden',t==='correction');if(t==='correction')setJudgement(judgement||'correct',false);switchChoiceMode()}
+
 function setJudgement(v,clear=true){judgement=v==='wrong'?'wrong':'correct';truthCorrect.classList.toggle('active',judgement==='correct');truthWrong.classList.toggle('active',judgement==='wrong');wrongStep.classList.toggle('hidden',judgement!=='wrong');if(clear&&judgement==='correct'){errorStart=errorEnd=null;rangeText.textContent='';reselectBtn.classList.add('hidden')}updatePreview()}
 function questionTextChanged(){if(errorStart!=null||errorEnd!=null){errorStart=errorEnd=null;rangeText.textContent='题目已修改，请重新选择错误位置';reselectBtn.classList.add('hidden')}updatePreview()}
 function captureSelection(){let s=qText.selectionStart,e=qText.selectionEnd;if(s===e){alert('请先在题目正文输入框里拖选错误文字');qText.focus();return}errorStart=s;errorEnd=e;rangeText.textContent='已标记：“'+qText.value.slice(s,e)+'”';reselectBtn.classList.remove('hidden');updatePreview()}
 function focusForReselect(){qText.focus();qText.setSelectionRange(0,0);rangeText.textContent='请重新拖选错误文字'}
 function updatePreview(){let t=qText.value||'';if(judgement!=='wrong'){previewBox.innerHTML='本题设置为正确，无需标记错误位置。';return}if(errorStart==null||errorEnd==null||errorEnd>t.length){previewBox.innerHTML=t?esc(t)+'<div class="muted" style="margin-top:6px">尚未设置错误位置</div>':'设置后，这里会高亮显示错误部分。';return}previewBox.innerHTML=esc(t.slice(0,errorStart))+`<span class="error-selection">${esc(t.slice(errorStart,errorEnd))}</span>`+esc(t.slice(errorEnd))+'<div class="ok-text" style="margin-top:8px">✓ 红色高亮部分就是成员需要找出的错误点</div>'}
-async function saveQuestion(){let type=qType.value,text=qText.value;if(!text.trim()){alert('请输入题目正文');return}let payload={type,text,enabled:true,answerText:qAnswer.value,noError:type==='correction'&&judgement==='correct',errorStart,errorEnd};if(type==='correction'&&judgement==='wrong'&&(errorStart==null||errorEnd==null)){alert('这道题设置为“有错误”，请先拖选并确认具体错误位置');return}if(type==='correction'&&judgement==='wrong'&&(errorStart<0||errorEnd<=errorStart||errorEnd>text.length)){alert('错误位置已经失效，请重新选择错误文字');errorStart=errorEnd=null;rangeText.textContent='请重新选择错误位置';updatePreview();return}if(type==='subjective'&&!qAnswer.value.trim()){alert('请输入主观题标准答案');return}try{let id=qId.value;await api(id?'/api/admin/questions/'+id:'/api/admin/questions',{method:id?'PUT':'POST',body:JSON.stringify(payload)});closeQuestion();await loadQuestions()}catch(e){alert(e.message)}}
+async function saveQuestion(){let type=qType.value==='choice'?qChoiceMode.value:qType.value,text=qText.value;if(filesLoading){alert('文件读取中，请稍候');return}if(!text.trim()&&(type==='correction'||!questionMedia.some(m=>isQuestionImage(m)))){alert('请输入题目正文或上传图片');return}let payload={type,text,enabled:true,answerText:qAnswer.value,noError:type==='correction'&&judgement==='correct',errorStart,errorEnd,media:type==='correction'?[]:questionMedia,options:[]};if(['single','multiple'].includes(type)){payload.options=choiceOptions.map(x=>x.trim());payload.answerText=selectedKeys.slice().sort().join(',');if(payload.options.length!==4||payload.options.some(x=>!x)){alert('请填写 A、B、C、D 四个选项');return}if(!selectedKeys.length||(type==='single'&&selectedKeys.length!==1)||(type==='multiple'&&selectedKeys.length<2)){alert('单选需设置一个正确答案，多选至少两个');return}}if(type==='correction'&&judgement==='wrong'&&(errorStart==null||errorEnd==null)){alert('这道题设置为“有错误”，请先拖选并确认具体错误位置');return}if(type==='correction'&&judgement==='wrong'&&(errorStart<0||errorEnd<=errorStart||errorEnd>text.length)){alert('错误位置已经失效，请重新选择错误文字');errorStart=errorEnd=null;rangeText.textContent='请重新选择错误位置';updatePreview();return}if(type==='subjective'&&!qAnswer.value.trim()){alert('请输入主观题标准答案');return}try{let id=qId.value;await api(id?'/api/admin/questions/'+id:'/api/admin/questions',{method:id?'PUT':'POST',body:JSON.stringify(payload)});closeQuestion();await loadQuestions()}catch(e){alert(e.message)}}
 async function deleteQuestion(id){if(!confirm('确定删除这道题吗？'))return;try{await api('/api/admin/questions/'+id,{method:'DELETE'});await loadQuestions()}catch(e){alert(e.message)}}
 async function moveQuestion(id,direction){try{await api('/api/admin/questions/'+id+'/move',{method:'POST',body:JSON.stringify({direction})});await loadQuestions()}catch(e){alert(e.message)}}
 
@@ -229,7 +242,7 @@ function renderParticipants(ps){
 }
 function renderQuestionStats(stats){questionStatsBody.innerHTML=stats.length?'':'<tr><td colspan="6" class="muted">考试开始后会在这里显示每道题的正确率。</td></tr>';stats.forEach(s=>{let tr=document.createElement('tr'),cls=+s.accuracy<60?'analysis-low':'';tr.innerHTML=`<td>第 ${s.position} 题</td><td>${esc(s.text)}</td><td>${s.correctCount}</td><td>${s.wrongCount}</td><td>${s.unansweredCount}</td><td class="rate ${cls}">${rate(s.accuracy)}</td>`;questionStatsBody.appendChild(tr)})}
 async function resetParticipant(id){if(!confirm('确定重置该成员的本场考试记录吗？重置后该姓名可以重新进入考试。'))return;try{await api('/api/admin/participants/'+id,{method:'DELETE'});await loadParticipants()}catch(e){alert(e.message)}}
-function answerDisplay(a){if(a.userAnswer==null)return'未作答';if(a.type==='subjective')return esc(a.userAnswer);if(a.userAnswer==='本题无错误')return'本题正确';let i=parseInt(a.userAnswer);return Number.isFinite(i)?`点击：“${esc(a.text[i]||'')}”（字符位置 ${i}）`:esc(a.userAnswer)}
+function answerDisplay(a){if(a.userAnswer==null)return'未作答';if(a.type!=='correction')return esc(a.userAnswer);if(a.userAnswer==='本题无错误')return'本题正确';let i=parseInt(a.userAnswer);return Number.isFinite(i)?`点击：“${esc(a.text[i]||'')}”（字符位置 ${i}）`:esc(a.userAnswer)}
 async function collectParticipant(id,name){
   if(!confirm(`确定收取 ${name} 的试卷吗？
 
@@ -266,11 +279,11 @@ async function showParticipant(id){
     let j=await api('/api/admin/participants/'+id),p=j.participant,as=j.answers||[];
     let submitMap={admin_collect:'管理员收卷',timeout:'超时交卷',admin_end:'管理员结束考试',manual:'主动交卷',completed:'正常完成'};let h=`<div class="notice">人工改判只修改“正确/错误”判定，不会修改成员的原始作答内容。改判后正确率和排名会自动重算。</div><div class="grid" style="margin-top:12px"><div><b>姓名：</b>${esc(p.name)}</div><div><b>正确率：</b>${rate(p.score)}</div><div><b>正确：</b>${p.correctCount}</div><div><b>错误/未答：</b>${p.wrongCount}</div><div><b>开始：</b>${esc(p.startedAt)}</div><div><b>交卷：</b>${esc(p.submittedAt||'-')}</div><div><b>交卷方式：</b>${esc(submitMap[p.submitType]||'-')}</div></div>`;
     as.forEach(a=>{
-      let std=a.type==='subjective'?'标准答案：'+esc(a.answerText||''):(a.noError?'标准答案：本题正确':'错误部分：'+`<span class="error-mark">${esc(a.correctText||'')}</span>`);
+      let std=a.type!=='correction'?'标准答案：'+esc(a.answerText||''):(a.noError?'标准答案：本题正确':'错误部分：'+`<span class="error-mark">${esc(a.correctText||'')}</span>`);
       let result=a.isCorrect==null?'未作答':(a.isCorrect?'✅ 正确':'❌ 错误');
       let reviewTag=a.adminOverride?` <span class="badge">人工改判</span>`:'';
       let buttons=a.userAnswer==null?'':`<div class="toolbar" style="margin-top:10px"><button class="btn small" onclick="reviewAnswer(${p.id},${a.questionId},true)">判为正确</button><button class="btn small danger" onclick="reviewAnswer(${p.id},${a.questionId},false)">判为错误</button>${a.adminOverride?`<button class="btn small" onclick="restoreAutoReview(${p.id},${a.questionId})">恢复自动判定</button>`:''}</div>`;
-      h+=`<div class="q"><b>管理员第 ${a.position} 题</b> · 成员实际第 ${a.memberOrder} 题 · ${result}${reviewTag}<div class="qtext">${a.type==='correction'&&!a.noError&&a.correctText?esc(a.text).replace(esc(a.correctText),`<span class="error-mark">${esc(a.correctText)}</span>`):esc(a.text)}</div><div class="answer-note">成员原始作答：${answerDisplay(a)}</div><div class="answer-note">${std}</div>${a.adminOverride?`<div class="muted" style="margin-top:6px">人工改判时间：${esc(a.reviewedAt||'')}</div>`:''}${buttons}</div>`;
+      h+=`<div class="q"><b>管理员第 ${a.position} 题</b> · 成员实际第 ${a.memberOrder} 题 · ${result}${reviewTag}<div class="qtext">${a.type==='correction'&&!a.noError&&a.correctText?esc(a.text).replace(esc(a.correctText),`<span class="error-mark">${esc(a.correctText)}</span>`):esc(a.text)}${optionsHtml(a)}${mediaHtml(a)}</div><div class="answer-note">成员原始作答：${answerDisplay(a)}</div><div class="answer-note">${std}</div>${a.adminOverride?`<div class="muted" style="margin-top:6px">人工改判时间：${esc(a.reviewedAt||'')}</div>`:''}${buttons}</div>`;
     });
     detailTitle.textContent='成员答题详情 / 人工改判';
     detailContent.innerHTML=h;
@@ -358,7 +371,7 @@ function historyAnswerMap(p){
 }
 function historyMemberAnswer(q,a){
   if(!a)return '未作答';
-  if(q.type==='subjective')return esc(a.userAnswer||'');
+  if(q.type!=='correction')return esc(a.userAnswer||'');
   if(a.userAnswer==='本题无错误')return '本题正确';
   let ci=parseInt(a.userAnswer);
   if(Number.isFinite(ci)){
@@ -368,7 +381,7 @@ function historyMemberAnswer(q,a){
   return esc(a.userAnswer||'');
 }
 function historyStandardAnswer(q){
-  if(q.type==='subjective')return esc(q.answerText||'');
+  if(q.type!=='correction')return esc(q.answerText||'');
   if(q.noError)return '本题正确';
   return esc(String(q.text||'').slice(+q.errorStart||0,+q.errorEnd||0));
 }
@@ -475,7 +488,7 @@ function renderHistoryReview(){
       let attention=(+st.wrongCount||0)+(+st.unansweredCount||0);
       return `<div class="review-item ${selected&&String(selected.id)===String(q.id)?'active':''}" onclick="selectHistoryQuestion('${q.id}')">
         <div class="review-item-title"><span>第 ${q.position} 题</span><span class="${(+st.accuracy||0)<60?'bad-text':'rate'}">${rate(st.accuracy)}</span></div>
-        <div class="review-item-meta">${q.type==='subjective'?'主观题':'判断纠错题'} · 错误/未答 ${attention} 人<br>${esc(String(q.text||'').slice(0,44))}${String(q.text||'').length>44?'…':''}</div>
+        <div class="review-item-meta">${typeLabel(q.type)} · 错误/未答 ${attention} 人<br>${esc(String(q.text||'').slice(0,44))}${String(q.text||'').length>44?'…':''}</div>
       </div>`;
     }).join('');
 
@@ -509,8 +522,8 @@ function renderHistoryReview(){
 
       panel=`<div class="review-panel-head">
         <div>
-          <b>第 ${selected.position} 题 · ${selected.type==='subjective'?'主观题':'判断纠错题'}</b>
-          <div class="qtext" style="margin-top:7px">${esc(selected.text)}</div>
+          <b>第 ${selected.position} 题 · ${typeLabel(selected.type)}</b>
+          <div class="qtext" style="margin-top:7px">${esc(selected.text)}${optionsHtml(selected)}${mediaHtml(selected)}</div>
         </div>
         <div class="review-nav">
           <button class="btn small" onclick="moveHistoryReview(-1)">上一题</button>
@@ -562,7 +575,7 @@ function renderHistoryReview(){
         <div class="review-panel-head">
           <div><b>成员第 ${x.i+1} 题 / 管理员第 ${q.position} 题</b> · <span class="${res.cls}">${res.label}</span>${a&&a.adminOverride?' <span class="badge">人工改判</span>':''}</div>
         </div>
-        <div class="qtext">${esc(q.text)}</div>
+        <div class="qtext">${esc(q.text)}${optionsHtml(q)}${mediaHtml(q)}</div>
         <div class="review-standard"><b>成员原始作答：</b><span class="review-answer-text">${historyMemberAnswer(q,a)}</span><br><b>标准答案：</b>${historyStandardAnswer(q)}</div>
         ${a&&a.adminOverride?`<div class="muted" style="margin-top:7px">系统原判：${a.autoIsCorrect?'正确':'错误'} · 改判时间：${esc(a.reviewedAt||'')}</div>`:''}
         ${historyReviewButtons(e.id,selectedP,q,a)}
@@ -666,5 +679,16 @@ async function retestHistory(id){
 }
 async function downloadHistory(id){try{let r=await fetch('/api/admin/history/'+id+'/export.xlsx',{headers:{'X-Admin-Token':token}});if(!r.ok){let j=await r.json();throw Error(j.message||'导出失败')}let blob=await r.blob(),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='exam_'+id+'_results.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){alert(e.message)}}
 if(token)enter();
+
+function isQuestionImage(m){return /^(data:image\/|\/media\/[a-f0-9]{32}\.(png|jpg|gif|webp)$)/.test(m.data)}
+function typeLabel(t){return {single:'单选题',multiple:'多选题',subjective:'主观题',correction:'判断纠错题'}[t]||t}
+function mediaHtml(q){return (q.media||[]).filter(m=>(/^(data:(image\/(png|jpeg|gif|webp)|application\/octet-stream);base64,[A-Za-z0-9+/=]+|\/media\/[a-f0-9]{32}\.(png|jpg|gif|webp|bin))$/.test(m.data))).map(m=>isQuestionImage(m)?`<div><img src="${m.data}" alt="${esc(m.name)}" style="max-width:100%;max-height:600px;object-fit:contain;margin:8px 0"></div>`:`<div style="margin:8px 0"><a href="${m.data}" download="${esc(m.name)}">下载附件：${esc(m.name)}</a></div>`).join('')}
+function optionsHtml(q){return (q.options||[]).map((o,i)=>`<div>${String.fromCharCode(65+i)}. ${esc(o)}</div>`).join('')}
+
+let questionMedia=[],selectedKeys=[],choiceOptions=['','','',''],filesLoading=false;
+function switchChoiceMode(){if(qChoiceMode.value==='single')selectedKeys=selectedKeys.slice(0,1);renderCorrectOptions()}
+function renderCorrectOptions(){let single=qChoiceMode.value==='single';selectedKeys=selectedKeys.filter(k=>/^[A-D]$/.test(k));correctOptions.innerHTML=choiceOptions.map((o,i)=>{let k=String.fromCharCode(65+i);return `<div style="display:flex;align-items:center;gap:10px;margin:12px 0"><input style="width:20px;height:20px;flex-shrink:0" type="${single?'radio':'checkbox'}" name="correctKey" value="${k}" aria-label="将 ${k} 设为正确答案" ${selectedKeys.includes(k)?'checked':''} onchange="selectedKeys=Array.from(document.querySelectorAll('[name=correctKey]:checked')).map(x=>x.value)"><label for="choiceOption${k}">${k}.</label><input id="choiceOption${k}" style="flex:1;min-width:0" type="text" placeholder="请输入选项 ${k}" value="${esc(o)}" oninput="choiceOptions[${i}]=this.value"></div>`}).join('');choiceAnswerHint.textContent=single?'单选题：点击正确选项前的圆形按钮，只能设置一个正确答案。':'多选题：勾选正确选项前的复选框，至少设置两个正确答案。全部选对才算正确，少选、多选、错选均算错误。'}
+function renderMediaPreview(){mediaPreview.innerHTML=questionMedia.map((m,i)=>`<div>${mediaHtml({media:[m]})}<button class="btn small danger" onclick="questionMedia.splice(${i},1);renderMediaPreview()">移除 ${esc(m.name)}</button></div>`).join('')}
+async function addQuestionFiles(input){if(filesLoading)return;filesLoading=true;input.disabled=true;try{let additions=[],total=questionMedia.reduce((n,m)=>n+(m.size??atob(m.data.split(',')[1]).length),0);if(questionMedia.length+input.files.length>6)throw Error('每题最多 6 个文件');for(let f of input.files){if(f.name.length>200)throw Error('文件名过长');total+=f.size;if(f.size>3*1024*1024||total>6*1024*1024)throw Error('单文件最多 3MB，每题合计最多 6MB');let image=/^image\/(png|jpeg|gif|webp)$/.test(f.type);if(!image&&!/\.(pdf|docx?|xlsx?|txt|csv|zip)$/i.test(f.name))throw Error('不支持的文件格式');let data=await new Promise((resolve,reject)=>{let r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(Error('读取文件失败'));r.readAsDataURL(f)});if(!image)data='data:application/octet-stream;base64,'+data.split(',')[1];additions.push({name:f.name,data,size:f.size})}questionMedia.push(...additions);renderMediaPreview()}catch(e){alert(e.message)}finally{filesLoading=false;input.disabled=false;input.value=''}}
 </script>
 </body></html>
